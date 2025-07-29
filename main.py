@@ -101,24 +101,49 @@ def get_logo_path():
             return f"/static/logo/logo.{ext}"
     return None
 
+def load_users_from_file():
+    """Загружает пользователей из файла users.txt"""
+    users = {}
+    try:
+        with open('users.txt', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and ':' in line:
+                    name, pin = line.split(':', 1)
+                    users[name.strip()] = pin.strip()
+    except FileNotFoundError:
+        print("Файл users.txt не найден. Создайте файл с пользователями в формате: Имя:ПИН")
+    return users
+
+def authenticate_user(name: str, pin: str) -> bool:
+    """Проверяет пользователя и пин-код"""
+    users = load_users_from_file()
+    return name in users and users[name] == pin
+
 def get_or_create_user(name: str) -> int:
+    """Получает пользователя из БД или создает его если он есть в файле"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Проверяем, существует ли пользователь
+    # Проверяем, существует ли пользователь в БД
     cursor.execute("SELECT id FROM users WHERE name = ?", (name,))
     user = cursor.fetchone()
     
     if user:
         user_id = user['id']
     else:
-        # Создаем нового пользователя
-        cursor.execute(
-            "INSERT INTO users (name, created_at) VALUES (?, ?)",
-            (name, datetime.now().isoformat())
-        )
-        user_id = cursor.lastrowid
-        conn.commit()
+        # Создаем пользователя в БД только если он есть в файле
+        users_file = load_users_from_file()
+        if name in users_file:
+            cursor.execute(
+                "INSERT INTO users (name, created_at) VALUES (?, ?)",
+                (name, datetime.now().isoformat())
+            )
+            user_id = cursor.lastrowid
+            conn.commit()
+        else:
+            conn.close()
+            return None
     
     conn.close()
     return user_id
@@ -254,17 +279,53 @@ def generate_csv(document_id: int) -> str:
 # Маршруты
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
+    users = load_users_from_file()
     return templates.TemplateResponse("login.html", {
         "request": request,
-        "logo_path": get_logo_path()
+        "logo_path": get_logo_path(),
+        "users": list(users.keys())
     })
 
 @app.post("/login")
-async def login(name: str = Form(...)):
+async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
     if not name.strip():
-        raise HTTPException(status_code=400, detail="Имя не может быть пустым")
+        users = load_users_from_file()
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "logo_path": get_logo_path(),
+            "users": list(users.keys()),
+            "error": "Имя не может быть пустым"
+        })
+    
+    if not pin.strip():
+        users = load_users_from_file()
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "logo_path": get_logo_path(),
+            "users": list(users.keys()),
+            "error": "ПИН-код не может быть пустым"
+        })
+    
+    # Проверяем авторизацию
+    if not authenticate_user(name.strip(), pin.strip()):
+        users = load_users_from_file()
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "logo_path": get_logo_path(),
+            "users": list(users.keys()),
+            "error": "Неверное имя пользователя или ПИН-код"
+        })
     
     user_id = get_or_create_user(name.strip())
+    if user_id is None:
+        users = load_users_from_file()
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "logo_path": get_logo_path(),
+            "users": list(users.keys()),
+            "error": "Пользователь не найден в системе"
+        })
+    
     response = RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
     return response
 

@@ -10,19 +10,41 @@
                 <div class="text-center mb-4">
                     <i class="bi bi-person-circle text-primary" style="font-size: 4rem;"></i>
                     <h2 class="card-title mt-3">Добро пожаловать</h2>
-                    <p class="text-muted">Введите ваше имя для входа в систему</p>
+                    <p class="text-muted">Введите ваше имя и ПИН-код для входа в систему</p>
                 </div>
                 
-                <form method="post" action="/login">
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/login" id="loginForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">Имя пользователя</label>
-                        <input type="text" 
+                        <select class="form-select form-select-lg" 
+                                id="name" 
+                                name="name" 
+                                required
+                                autofocus>
+                            <option value="">Выберите пользователя</option>
+                            {% for user in users %}
+                            <option value="{{ user }}">{{ user }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="pin" class="form-label">ПИН-код</label>
+                        <input type="password" 
                                class="form-control form-control-lg" 
-                               id="name" 
-                               name="name" 
-                               placeholder="Введите ваше имя"
-                               required
-                               autofocus>
+                               id="pin" 
+                               name="pin" 
+                               placeholder="Введите ПИН-код"
+                               maxlength="4"
+                               required>
                     </div>
                     
                     <div class="d-grid">
@@ -36,7 +58,7 @@
                 <div class="text-center mt-4">
                     <small class="text-muted">
                         <i class="bi bi-info-circle me-1"></i>
-                        Если это ваш первый вход, аккаунт будет создан автоматически
+                        Доступ только для зарегистрированных пользователей
                     </small>
                 </div>
             </div>
@@ -71,6 +93,7 @@
 
 {% block scripts %}
 <script>
+// Обработка формы загрузки логотипа
 document.getElementById('logoForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
