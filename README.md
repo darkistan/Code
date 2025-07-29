@@ -31,8 +31,19 @@ pip install -r requirements.txt
 ```
 
 ### 3. Запуск приложения
+
+**Для Windows:**
 ```bash
+# Вариант 1: Использовать batch файл
+start.bat
+
+# Вариант 2: Командная строка
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+**Для Linux/Mac:**
+```bash
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### 4. Доступ к приложению

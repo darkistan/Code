@@ -10,13 +10,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="Мобильная инвентаризация")
-
 # Создание директорий если их нет
 os.makedirs("templates", exist_ok=True)
 os.makedirs("static", exist_ok=True)
 os.makedirs("static/documents", exist_ok=True)
 os.makedirs("static/logo", exist_ok=True)
+
+app = FastAPI(title="Мобильная инвентаризация")
 
 # Настройка шаблонов и статических файлов
 templates = Jinja2Templates(directory="templates")
