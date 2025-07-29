@@ -12,13 +12,15 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Мобильная инвентаризация")
 
+# Создание директорий если их нет
+os.makedirs("templates", exist_ok=True)
+os.makedirs("static", exist_ok=True)
+os.makedirs("static/documents", exist_ok=True)
+os.makedirs("static/logo", exist_ok=True)
+
 # Настройка шаблонов и статических файлов
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Создание директорий если их нет
-os.makedirs("static/documents", exist_ok=True)
-os.makedirs("static/logo", exist_ok=True)
 
 # Модели данных
 class User(BaseModel):
@@ -89,6 +91,15 @@ def get_db_connection():
     conn = sqlite3.connect('db.sqlite3')
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_logo_path():
+    """Возвращает путь к логотипу если он существует"""
+    logo_dir = "static/logo"
+    for ext in ['jpg', 'jpeg', 'png']:
+        logo_path = os.path.join(logo_dir, f"logo.{ext}")
+        if os.path.exists(logo_path):
+            return f"/static/logo/logo.{ext}"
+    return None
 
 def get_or_create_user(name: str) -> int:
     conn = get_db_connection()
@@ -243,7 +254,10 @@ def generate_csv(document_id: int) -> str:
 # Маршруты
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "logo_path": get_logo_path()
+    })
 
 @app.post("/login")
 async def login(name: str = Form(...)):
@@ -279,7 +293,8 @@ async def dashboard(request: Request, user_id: int):
         "request": request,
         "user": dict(user),
         "active_doc": active_doc,
-        "documents": user_documents
+        "documents": user_documents,
+        "logo_path": get_logo_path()
     })
 
 @app.post("/create_document/{user_id}")
@@ -326,7 +341,8 @@ async def scan_page(request: Request, user_id: int):
         "request": request,
         "user": dict(user),
         "document": active_doc,
-        "barcodes": barcodes
+        "barcodes": barcodes,
+        "logo_path": get_logo_path()
     })
 
 @app.post("/add_barcode/{user_id}")

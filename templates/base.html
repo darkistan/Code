@@ -58,18 +58,11 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
+            {% if logo_path %}
             <div class="logo-container me-3">
-                {% set logo_files = [] %}
-                {% for ext in ['jpg', 'jpeg', 'png'] %}
-                    {% if logo_files|length == 0 %}
-                        {% set logo_path = '/static/logo/logo.' + ext %}
-                        {% set _ = logo_files.append(logo_path) if logo_path %}
-                    {% endif %}
-                {% endfor %}
-                {% if logo_files %}
-                    <img src="{{ logo_files[0] }}" alt="Логотип" class="me-2">
-                {% endif %}
+                <img src="{{ logo_path }}" alt="Логотип" class="me-2">
             </div>
+            {% endif %}
             <a class="navbar-brand" href="/">
                 <i class="bi bi-clipboard-check me-2"></i>
                 Мобильная инвентаризация
