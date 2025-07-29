@@ -46,13 +46,18 @@
                     <div class="row align-items-end">
                         <div class="col-md-10">
                             <label for="barcode" class="form-label">Штрихкод</label>
-                            <input type="text" 
-                                   class="form-control scanner-input" 
-                                   id="barcode" 
-                                   name="barcode" 
-                                   placeholder="Отсканируйте или введите штрихкод"
-                                   required
-                                   autofocus>
+                            <div class="position-relative">
+                                <input type="text" 
+                                       class="form-control scanner-input" 
+                                       id="barcode" 
+                                       name="barcode" 
+                                       placeholder="Отсканируйте или введите штрихкод"
+                                       required
+                                       autofocus>
+                                <div id="scan-feedback" class="position-absolute top-50 end-0 translate-middle-y me-3" style="display: none;">
+                                    <i class="bi bi-check-circle text-success fs-4"></i>
+                                </div>
+                            </div>
                             <div class="form-text">
                                 <i class="bi bi-info-circle me-1"></i>
                                 Поместите курсор в поле и отсканируйте штрихкод сканером Eyoyo
@@ -164,32 +169,119 @@
 
 {% block scripts %}
 <script>
-// Автоматическая отправка формы после ввода штрихкода
-document.getElementById('barcode').addEventListener('input', function() {
-    // Если длина штрихкода больше 6 символов, автоматически отправляем форму
-    if (this.value.length >= 8) {
+let isSubmitting = false;
+let autoSubmitTimeout = null;
+
+// Функция для отправки формы с защитой от дублирования
+function submitForm() {
+    if (isSubmitting) return;
+    
+    const barcodeInput = document.getElementById('barcode');
+    const barcodeValue = barcodeInput.value.trim();
+    
+    if (!barcodeValue) return;
+    
+    isSubmitting = true;
+    
+    // Показываем визуальную обратную связь
+    showScanFeedback();
+    
+    // Очищаем поле сразу для предотвращения повторной отправки
+    barcodeInput.value = '';
+    
+    // Создаем скрытое поле для отправки значения
+    const form = document.getElementById('scanForm');
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'barcode';
+    hiddenInput.value = barcodeValue;
+    form.appendChild(hiddenInput);
+    
+    // Отправляем форму
+    form.submit();
+}
+
+// Показать визуальную обратную связь при сканировании
+function showScanFeedback() {
+    const feedback = document.getElementById('scan-feedback');
+    const statsNumber = document.querySelector('.stats-number');
+    
+    if (feedback) {
+        feedback.style.display = 'block';
         setTimeout(() => {
-            document.getElementById('scanForm').submit();
-        }, 100);
+            feedback.style.display = 'none';
+        }, 1000);
+    }
+    
+    // Анимация счетчика
+    if (statsNumber) {
+        statsNumber.classList.add('pulse');
+        setTimeout(() => {
+            statsNumber.classList.remove('pulse');
+        }, 1000);
+    }
+}
+
+// Автоматическая отправка формы после ввода штрихкода (для сканера)
+document.getElementById('barcode').addEventListener('input', function(e) {
+    const value = this.value.trim();
+    
+    // Очищаем предыдущий таймер
+    if (autoSubmitTimeout) {
+        clearTimeout(autoSubmitTimeout);
+        autoSubmitTimeout = null;
+    }
+    
+    // Если длина штрихкода больше 8 символов, считаем что это сканер
+    if (value.length >= 8) {
+        autoSubmitTimeout = setTimeout(() => {
+            submitForm();
+        }, 300); // Увеличиваем задержку для сканера
+    }
+});
+
+// Обработка Enter для ручного ввода
+document.getElementById('barcode').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        
+        // Очищаем таймер автоотправки если есть
+        if (autoSubmitTimeout) {
+            clearTimeout(autoSubmitTimeout);
+            autoSubmitTimeout = null;
+        }
+        
+        submitForm();
+    }
+});
+
+// Предотвращаем стандартную отправку формы
+document.getElementById('scanForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!isSubmitting) {
+        submitForm();
     }
 });
 
 // Фокус на поле ввода после загрузки страницы
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('barcode').focus();
+    isSubmitting = false; // Сбрасываем флаг после загрузки
 });
 
 // Возврат фокуса на поле ввода при клике в любом месте
-document.addEventListener('click', function() {
-    document.getElementById('barcode').focus();
+document.addEventListener('click', function(e) {
+    // Не перехватываем фокус если кликнули по кнопке или форме
+    if (!e.target.closest('button') && !e.target.closest('form')) {
+        document.getElementById('barcode').focus();
+    }
 });
 
-// Обработка Enter для отправки формы
-document.getElementById('barcode').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('scanForm').submit();
-    }
+// Сброс флага при возврате на страницу
+window.addEventListener('pageshow', function() {
+    isSubmitting = false;
+    document.getElementById('barcode').value = '';
+    document.getElementById('barcode').focus();
 });
 </script>
 {% endblock %}

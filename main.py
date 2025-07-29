@@ -400,7 +400,26 @@ async def add_new_barcode(user_id: int, barcode: str = Form(...)):
     if not active_doc:
         raise HTTPException(status_code=400, detail="Нет активного документа")
     
-    add_barcode(active_doc['id'], barcode.strip())
+    barcode_value = barcode.strip()
+    
+    # Проверяем, не был ли уже добавлен такой же штрихкод в последние 5 секунд
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT COUNT(*) FROM barcodes 
+        WHERE document_id = ? AND barcode = ? 
+        AND datetime(created_at) > datetime('now', '-5 seconds')
+    """, (active_doc['id'], barcode_value))
+    
+    recent_count = cursor.fetchone()[0]
+    conn.close()
+    
+    # Если такой штрихкод уже был добавлен недавно, игнорируем
+    if recent_count > 0:
+        return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
+    
+    add_barcode(active_doc['id'], barcode_value)
     
     return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
 
