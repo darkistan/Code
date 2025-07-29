@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Мобильная инвентаризация{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-circle text-primary" style="font-size: 4rem;"></i>
+                    <h2 class="card-title mt-3">Добро пожаловать</h2>
+                    <p class="text-muted">Введите ваше имя для входа в систему</p>
+                </div>
+                
+                <form method="post" action="/login">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Имя пользователя</label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="name" 
+                               name="name" 
+                               placeholder="Введите ваше имя"
+                               required
+                               autofocus>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>
+                            Войти
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Если это ваш первый вход, аккаунт будет создан автоматически
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Форма загрузки логотипа -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-image me-2"></i>
+                    Загрузить логотип
+                </h6>
+                <form id="logoForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" 
+                               class="form-control" 
+                               id="logo" 
+                               name="logo" 
+                               accept=".jpg,.jpeg,.png">
+                        <div class="form-text">Поддерживаются форматы: JPG, PNG</div>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-upload me-1"></i>
+                        Загрузить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('logoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const logoFile = document.getElementById('logo').files[0];
+    
+    if (!logoFile) {
+        alert('Пожалуйста, выберите файл');
+        return;
+    }
+    
+    formData.append('logo', logoFile);
+    
+    try {
+        const response = await fetch('/upload_logo', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Логотип успешно загружен!');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка: ' + error.detail);
+        }
+    } catch (error) {
+        alert('Ошибка загрузки: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

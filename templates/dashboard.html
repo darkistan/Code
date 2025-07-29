@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления - {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-house-door me-2"></i>
+                Панель управления
+            </h1>
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="bi bi-box-arrow-left me-1"></i>
+                Выйти
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if active_doc %}
+<!-- Активный документ -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-text me-2"></i>
+                    Активный документ
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="text-success">{{ active_doc.doc_type }}</h6>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-calendar me-1"></i>
+                            Создан: {{ active_doc.created_at[:19].replace('T', ' ') }}
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <a href="/scan/{{ user.id }}" class="btn btn-success me-2">
+                            <i class="bi bi-qr-code-scan me-1"></i>
+                            Продолжить сканирование
+                        </a>
+                        <form method="post" action="/close_document/{{ user.id }}" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger" 
+                                    onclick="return confirm('Закрыть документ и сохранить CSV?')">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Завершить документ
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Создание нового документа -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Создать новый документ
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Выберите тип документа для начала работы:</p>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <form method="post" action="/create_document/{{ user.id }}">
+                            <input type="hidden" name="doc_type" value="Инвентаризация">
+                            <button type="submit" class="btn btn-outline-primary btn-lg w-100 h-100 py-4">
+                                <i class="bi bi-clipboard-check" style="font-size: 2rem;"></i>
+                                <div class="mt-2">
+                                    <strong>Инвентаризация</strong>
+                                    <div class="small text-muted">Подсчет товаров на складе</div>
+                                </div>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <form method="post" action="/create_document/{{ user.id }}">
+                            <input type="hidden" name="doc_type" value="Приход">
+                            <button type="submit" class="btn btn-outline-success btn-lg w-100 h-100 py-4">
+                                <i class="bi bi-box-arrow-in-down" style="font-size: 2rem;"></i>
+                                <div class="mt-2">
+                                    <strong>Приход</strong>
+                                    <div class="small text-muted">Поступление товаров</div>
+                                </div>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- История документов -->
+{% if documents %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    История документов
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Тип</th>
+                                <th>Статус</th>
+                                <th>Создан</th>
+                                <th>Закрыт</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>
+                                    {% if doc.doc_type == 'Инвентаризация' %}
+                                        <i class="bi bi-clipboard-check text-primary me-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-box-arrow-in-down text-success me-1"></i>
+                                    {% endif %}
+                                    {{ doc.doc_type }}
+                                </td>
+                                <td>
+                                    {% if doc.status == 'active' %}
+                                        <span class="badge bg-success">Активный</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Закрыт</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ doc.created_at[:19].replace('T', ' ') }}</td>
+                                <td>
+                                    {% if doc.closed_at %}
+                                        {{ doc.closed_at[:19].replace('T', ' ') }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if doc.status == 'closed' %}
+                                        <form method="post" action="/regenerate_csv/{{ user.id }}" class="d-inline">
+                                            <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-download me-1"></i>
+                                                Выгрузить повторно
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <a href="/scan/{{ user.id }}" class="btn btn-sm btn-success">
+                                            <i class="bi bi-qr-code-scan me-1"></i>
+                                            Открыть
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
