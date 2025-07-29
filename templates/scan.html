@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>
+            <h1 class="h3">
                 {% if document.doc_type == 'Инвентаризация' %}
                     <i class="bi bi-clipboard-check text-primary me-2"></i>
                 {% else %}
@@ -14,7 +14,7 @@
                 {% endif %}
                 {{ document.doc_type }}
             </h1>
-            <div>
+            <div class="d-none d-md-flex">
                 <a href="/dashboard/{{ user.id }}" class="btn btn-outline-secondary me-2">
                     <i class="bi bi-arrow-left me-1"></i>
                     Назад
@@ -73,27 +73,27 @@
 
 <!-- Статистика -->
 <div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card text-center">
+    <div class="col-12 col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card">
             <div class="card-body">
-                <h2 class="text-primary">{{ barcodes|length }}</h2>
-                <p class="text-muted mb-0">Всего отсканировано</p>
+                <div class="stats-number text-primary pulse">{{ barcodes|length }}</div>
+                <p class="text-muted mb-0 small">Всего отсканировано</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card text-center">
+    <div class="col-6 col-md-4 mb-3 mb-md-0">
+        <div class="card stats-card">
             <div class="card-body">
-                <h2 class="text-info">{{ document.created_at[:19].replace('T', ' ') }}</h2>
-                <p class="text-muted mb-0">Время создания</p>
+                <div class="text-info small">{{ document.created_at[:19].replace('T', ' ') }}</div>
+                <p class="text-muted mb-0 small">Время создания</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card text-center">
+    <div class="col-6 col-md-4">
+        <div class="card stats-card">
             <div class="card-body">
-                <h2 class="text-success">{{ user.name }}</h2>
-                <p class="text-muted mb-0">Оператор</p>
+                <div class="text-success">{{ user.name }}</div>
+                <p class="text-muted mb-0 small">Оператор</p>
             </div>
         </div>
     </div>
@@ -149,6 +149,17 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Плавающая кнопка сохранения для мобильных -->
+<div class="position-fixed bottom-0 end-0 p-3 d-md-none" style="z-index: 1050;">
+    <form method="post" action="/close_document/{{ user.id }}">
+        <button type="submit" class="btn btn-success btn-lg rounded-circle shadow-lg" 
+                onclick="return confirm('Завершить документ и сохранить CSV файл?')"
+                title="Сохранить документ">
+            <i class="bi bi-check-circle"></i>
+        </button>
+    </form>
+</div>
 {% endblock %}
 
 {% block scripts %}

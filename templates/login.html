@@ -64,64 +64,18 @@
             </div>
         </div>
         
-        <!-- Форма загрузки логотипа -->
-        <div class="card mt-4">
-            <div class="card-body">
-                <h6 class="card-title">
-                    <i class="bi bi-image me-2"></i>
-                    Загрузить логотип
-                </h6>
-                <form id="logoForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <input type="file" 
-                               class="form-control" 
-                               id="logo" 
-                               name="logo" 
-                               accept=".jpg,.jpeg,.png">
-                        <div class="form-text">Поддерживаются форматы: JPG, PNG</div>
-                    </div>
-                    <button type="submit" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-upload me-1"></i>
-                        Загрузить
-                    </button>
-                </form>
-            </div>
-        </div>
+
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Обработка формы загрузки логотипа
-document.getElementById('logoForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    const logoFile = document.getElementById('logo').files[0];
-    
-    if (!logoFile) {
-        alert('Пожалуйста, выберите файл');
-        return;
-    }
-    
-    formData.append('logo', logoFile);
-    
-    try {
-        const response = await fetch('/upload_logo', {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (response.ok) {
-            alert('Логотип успешно загружен!');
-            location.reload();
-        } else {
-            const error = await response.json();
-            alert('Ошибка: ' + error.detail);
-        }
-    } catch (error) {
-        alert('Ошибка загрузки: ' + error.message);
+// Автофокус на выпадающий список при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    const nameSelect = document.getElementById('name');
+    if (nameSelect) {
+        nameSelect.focus();
     }
 });
 </script>

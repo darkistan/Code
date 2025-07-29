@@ -14,7 +14,6 @@ from pydantic import BaseModel
 os.makedirs("templates", exist_ok=True)
 os.makedirs("static", exist_ok=True)
 os.makedirs("static/documents", exist_ok=True)
-os.makedirs("static/logo", exist_ok=True)
 
 app = FastAPI(title="Мобильная инвентаризация")
 
@@ -92,14 +91,7 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-def get_logo_path():
-    """Возвращает путь к логотипу если он существует"""
-    logo_dir = "static/logo"
-    for ext in ['jpg', 'jpeg', 'png']:
-        logo_path = os.path.join(logo_dir, f"logo.{ext}")
-        if os.path.exists(logo_path):
-            return f"/static/logo/logo.{ext}"
-    return None
+# Логотип теперь постоянный SVG файл
 
 def load_users_from_file():
     """Загружает пользователей из файла users.txt"""
@@ -282,7 +274,6 @@ async def home(request: Request):
     users = load_users_from_file()
     return templates.TemplateResponse("login.html", {
         "request": request,
-        "logo_path": get_logo_path(),
         "users": list(users.keys())
     })
 
@@ -292,7 +283,6 @@ async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
         users = load_users_from_file()
         return templates.TemplateResponse("login.html", {
             "request": request,
-            "logo_path": get_logo_path(),
             "users": list(users.keys()),
             "error": "Имя не может быть пустым"
         })
@@ -301,7 +291,6 @@ async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
         users = load_users_from_file()
         return templates.TemplateResponse("login.html", {
             "request": request,
-            "logo_path": get_logo_path(),
             "users": list(users.keys()),
             "error": "ПИН-код не может быть пустым"
         })
@@ -311,7 +300,6 @@ async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
         users = load_users_from_file()
         return templates.TemplateResponse("login.html", {
             "request": request,
-            "logo_path": get_logo_path(),
             "users": list(users.keys()),
             "error": "Неверное имя пользователя или ПИН-код"
         })
@@ -321,7 +309,6 @@ async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
         users = load_users_from_file()
         return templates.TemplateResponse("login.html", {
             "request": request,
-            "logo_path": get_logo_path(),
             "users": list(users.keys()),
             "error": "Пользователь не найден в системе"
         })
@@ -354,8 +341,7 @@ async def dashboard(request: Request, user_id: int):
         "request": request,
         "user": dict(user),
         "active_doc": active_doc,
-        "documents": user_documents,
-        "logo_path": get_logo_path()
+        "documents": user_documents
     })
 
 @app.post("/create_document/{user_id}")
@@ -402,8 +388,7 @@ async def scan_page(request: Request, user_id: int):
         "request": request,
         "user": dict(user),
         "document": active_doc,
-        "barcodes": barcodes,
-        "logo_path": get_logo_path()
+        "barcodes": barcodes
     })
 
 @app.post("/add_barcode/{user_id}")
@@ -440,25 +425,7 @@ async def regenerate_document_csv(user_id: int, document_id: int = Form(...)):
     filename = generate_csv(document_id)
     return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
 
-@app.post("/upload_logo")
-async def upload_logo(logo: UploadFile = File(...)):
-    if logo.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
-        raise HTTPException(status_code=400, detail="Поддерживаются только JPG и PNG файлы")
-    
-    # Удаляем старый логотип
-    logo_dir = "static/logo"
-    for file in os.listdir(logo_dir):
-        if file.startswith("logo."):
-            os.remove(os.path.join(logo_dir, file))
-    
-    # Сохраняем новый логотип
-    file_extension = logo.filename.split(".")[-1].lower()
-    logo_path = os.path.join(logo_dir, f"logo.{file_extension}")
-    
-    with open(logo_path, "wb") as buffer:
-        shutil.copyfileobj(logo.file, buffer)
-    
-    return {"message": "Логотип загружен успешно"}
+# Загрузка логотипа удалена - используется постоянный SVG
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):
@@ -467,6 +434,16 @@ async def download_file(filename: str):
         return FileResponse(file_path, filename=filename)
     else:
         raise HTTPException(status_code=404, detail="Файл не найден")
+
+@app.get("/static/icon-{size}.png")
+async def get_icon(size: str):
+    """Генерирует простую иконку для PWA"""
+    from fastapi.responses import Response
+    
+    # Простая PNG иконка (1x1 пиксель синего цвета в base64)
+    png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\nIDATx\x9cc```\x00\x00\x00\x04\x00\x01\xddcc\xdb\x00\x00\x00\x00IEND\xaeB`\x82'
+    
+    return Response(content=png_data, media_type="image/png")
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,103 +1,372 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>{% block title %}Мобильная инвентаризация{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
     <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-radius: 0.75rem;
+            --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --box-shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        [data-bs-theme="dark"] {
+            --primary-color: #0d6efd;
+            --light-color: #212529;
+            --dark-color: #f8f9fa;
+            --box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.075);
+            --box-shadow-lg: 0 0.5rem 1rem rgba(255, 255, 255, 0.15);
+        }
+
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding-bottom: env(safe-area-inset-bottom);
         }
+
+        .navbar {
+            box-shadow: var(--box-shadow);
+            padding: 0.75rem 0;
+        }
+
         .navbar-brand {
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
+
+        .logo-svg {
+            width: 32px;
+            height: 32px;
+            margin-right: 0.5rem;
+            color: currentColor;
+        }
+
         .card {
             border: none;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border-radius: 0.5rem;
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
         }
-        .btn {
-            border-radius: 0.375rem;
-        }
-        .logo-container {
-            max-height: 60px;
-            display: flex;
-            align-items: center;
-        }
-        .logo-container img {
-            max-height: 50px;
-            width: auto;
-        }
-        .barcode-item {
-            border-left: 4px solid #0d6efd;
-            background-color: #f8f9ff;
-        }
-        .document-card {
-            transition: transform 0.2s;
-        }
-        .document-card:hover {
+
+        .card:hover {
             transform: translateY(-2px);
+            box-shadow: var(--box-shadow-lg);
         }
-        .scanner-input {
+
+        .btn {
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
             font-size: 1.1rem;
-            padding: 0.75rem;
         }
+
+        .form-control, .form-select {
+            border-radius: var(--border-radius);
+            border: 2px solid transparent;
+            background-color: var(--bs-body-bg);
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .scanner-input {
+            font-size: 1.2rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .barcode-item {
+            border-left: 4px solid var(--primary-color);
+            background-color: rgba(13, 110, 253, 0.05);
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            transition: all 0.2s ease;
+        }
+
+        .barcode-item:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .theme-toggle {
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .stats-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bs-body-bg);
+            border-top: 1px solid var(--bs-border-color);
+            padding: env(safe-area-inset-bottom) 0 0;
+            z-index: 1030;
+        }
+
+        .mobile-nav .nav-link {
+            text-align: center;
+            padding: 0.75rem 0.5rem;
+            color: var(--bs-secondary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .mobile-nav .nav-link.active {
+            color: var(--primary-color);
+        }
+
+        .mobile-nav .nav-link i {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .mobile-nav .nav-link span {
+            font-size: 0.75rem;
+        }
+
+        /* Мобильная адаптация */
         @media (max-width: 768px) {
             .container {
-                padding: 0.5rem;
+                padding: 0.75rem;
             }
+            
             .card {
                 margin-bottom: 1rem;
             }
+            
+            .btn {
+                padding: 0.75rem 1rem;
+            }
+            
+            .btn-lg {
+                padding: 1rem 1.5rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            
+            .logo-svg {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .stats-number {
+                font-size: 2rem;
+            }
+            
+            main {
+                padding-bottom: 5rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Улучшения для touch-устройств */
+        @media (hover: none) and (pointer: coarse) {
+            .btn {
+                min-height: 44px;
+            }
+            
+            .form-control, .form-select {
+                min-height: 44px;
+            }
+            
+            .nav-link {
+                min-height: 44px;
+            }
+        }
+
+        /* Анимации */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            {% if logo_path %}
-            <div class="logo-container me-3">
-                <img src="{{ logo_path }}" alt="Логотип" class="me-2">
+            <div class="d-flex align-items-center">
+                <svg class="logo-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="48" height="48" rx="8" fill="currentColor" fill-opacity="0.1"/>
+                    <rect x="8" y="12" width="32" height="24" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <rect x="10" y="14" width="28" height="20" rx="1" fill="currentColor" fill-opacity="0.2"/>
+                    <g transform="translate(12, 18)">
+                        <rect x="0" y="0" width="1" height="8" fill="currentColor"/>
+                        <rect x="2" y="0" width="2" height="8" fill="currentColor"/>
+                        <rect x="5" y="0" width="1" height="8" fill="currentColor"/>
+                        <rect x="7" y="0" width="3" height="8" fill="currentColor"/>
+                        <rect x="11" y="0" width="1" height="8" fill="currentColor"/>
+                        <rect x="13" y="0" width="2" height="8" fill="currentColor"/>
+                        <rect x="16" y="0" width="1" height="8" fill="currentColor"/>
+                        <rect x="18" y="0" width="2" height="8" fill="currentColor"/>
+                        <rect x="21" y="0" width="1" height="8" fill="currentColor"/>
+                        <rect x="23" y="0" width="1" height="8" fill="currentColor"/>
+                    </g>
+                    <path d="M16 30L20 34L32 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+                <a class="navbar-brand" href="/">
+                    Мобильная инвентаризация
+                </a>
             </div>
-            {% endif %}
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-clipboard-check me-2"></i>
-                Мобильная инвентаризация
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    {% if user %}
-                    <li class="nav-item">
-                        <span class="navbar-text">
-                            <i class="bi bi-person-circle me-1"></i>
-                            {{ user.name }}
-                        </span>
-                    </li>
-                    {% endif %}
-                </ul>
+            
+            <div class="d-flex align-items-center">
+                <button class="theme-toggle me-3" onclick="toggleTheme()" title="Переключить тему">
+                    <i class="bi bi-sun-fill" id="theme-icon"></i>
+                </button>
+                
+                {% if user %}
+                <div class="d-flex align-items-center text-white">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <span class="d-none d-md-inline">{{ user.name }}</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-    <main class="container mt-4">
+    <main class="container mt-4 fade-in">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-light text-center py-3 mt-5">
+    {% if user %}
+    <div class="mobile-nav d-md-none">
         <div class="container">
-            <small class="text-muted">
-                © 2024 Система мобильной инвентаризации
-            </small>
+            <div class="row text-center">
+                <div class="col">
+                    <a href="/dashboard/{{ user.id }}" class="nav-link">
+                        <i class="bi bi-house"></i>
+                        <span>Главная</span>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="/scan/{{ user.id }}" class="nav-link">
+                        <i class="bi bi-qr-code-scan"></i>
+                        <span>Сканер</span>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="/" class="nav-link">
+                        <i class="bi bi-box-arrow-left"></i>
+                        <span>Выход</span>
+                    </a>
+                </div>
+            </div>
         </div>
-    </footer>
+    </div>
+    {% endif %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Управление темой
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-bs-theme');
+            
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-bs-theme', 'light');
+                themeIcon.className = 'bi bi-sun-fill';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-bs-theme', 'dark');
+                themeIcon.className = 'bi bi-moon-fill';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Восстановление темы при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            html.setAttribute('data-bs-theme', savedTheme);
+            themeIcon.className = savedTheme === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+            
+            // Подсветка активной страницы в мобильной навигации
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.mobile-nav .nav-link');
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Предотвращение зума при двойном тапе на iOS
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
