@@ -104,6 +104,22 @@
     </div>
 </div>
 
+{% if document.comment %}
+<!-- Комментарий к документу -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-chat-left-text text-info me-2"></i>
+                    <small class="text-muted mb-0">{{ document.comment }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Список штрихкодов -->
 {% if barcodes %}
 <div class="row">

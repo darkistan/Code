@@ -64,9 +64,17 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'active',
             created_at TEXT NOT NULL,
             closed_at TEXT,
+            comment TEXT DEFAULT '',
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    
+    # Добавляем колонку comment если её нет (для существующих БД)
+    cursor.execute("PRAGMA table_info(documents)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'comment' not in columns:
+        cursor.execute("ALTER TABLE documents ADD COLUMN comment TEXT DEFAULT ''")
+        conn.commit()
     
     # Таблица штрихкодов
     cursor.execute('''
@@ -140,13 +148,13 @@ def get_or_create_user(name: str) -> int:
     conn.close()
     return user_id
 
-def create_document(user_id: int, doc_type: str) -> int:
+def create_document(user_id: int, doc_type: str, comment: str = '') -> int:
     conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute(
-        "INSERT INTO documents (user_id, doc_type, status, created_at) VALUES (?, ?, 'active', ?)",
-        (user_id, doc_type, datetime.now().isoformat())
+        "INSERT INTO documents (user_id, doc_type, status, created_at, comment) VALUES (?, ?, 'active', ?, ?)",
+        (user_id, doc_type, datetime.now().isoformat(), comment)
     )
     document_id = cursor.lastrowid
     conn.commit()
@@ -222,6 +230,46 @@ def get_user_documents(user_id: int) -> List[dict]:
     conn.close()
     
     return [dict(doc) for doc in documents]
+
+def delete_document(document_id: int, user_id: int) -> bool:
+    """Удаляет документ и все связанные штрихкоды"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Проверяем, что документ принадлежит пользователю
+    cursor.execute(
+        "SELECT id FROM documents WHERE id = ? AND user_id = ?",
+        (document_id, user_id)
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return False
+    
+    # Удаляем штрихкоды документа
+    cursor.execute("DELETE FROM barcodes WHERE document_id = ?", (document_id,))
+    
+    # Удаляем сам документ
+    cursor.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+    
+    conn.commit()
+    conn.close()
+    return True
+
+def update_document_comment(document_id: int, user_id: int, comment: str) -> bool:
+    """Обновляет комментарий к документу"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Проверяем, что документ принадлежит пользователю
+    cursor.execute(
+        "UPDATE documents SET comment = ? WHERE id = ? AND user_id = ?",
+        (comment, document_id, user_id)
+    )
+    
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
 
 def generate_csv(document_id: int) -> str:
     conn = get_db_connection()
@@ -345,7 +393,7 @@ async def dashboard(request: Request, user_id: int):
     })
 
 @app.post("/create_document/{user_id}")
-async def create_new_document(user_id: int, doc_type: str = Form(...)):
+async def create_new_document(user_id: int, doc_type: str = Form(...), comment: str = Form(default="")):
     if doc_type not in ['Инвентаризация', 'Приход']:
         raise HTTPException(status_code=400, detail="Неверный тип документа")
     
@@ -354,8 +402,8 @@ async def create_new_document(user_id: int, doc_type: str = Form(...)):
     if active_doc:
         close_document(active_doc['id'])
     
-    # Создаем новый документ
-    document_id = create_document(user_id, doc_type)
+    # Создаем новый документ с комментарием
+    document_id = create_document(user_id, doc_type, comment.strip())
     
     return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
 
@@ -442,6 +490,22 @@ async def close_active_document(user_id: int):
 @app.post("/regenerate_csv/{user_id}")
 async def regenerate_document_csv(user_id: int, document_id: int = Form(...)):
     filename = generate_csv(document_id)
+    return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
+
+@app.post("/delete_document/{user_id}")
+async def delete_user_document(user_id: int, document_id: int = Form(...)):
+    success = delete_document(document_id, user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Документ не найден или нет прав доступа")
+    
+    return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
+
+@app.post("/update_comment/{user_id}")
+async def update_comment(user_id: int, document_id: int = Form(...), comment: str = Form(...)):
+    success = update_document_comment(document_id, user_id, comment.strip())
+    if not success:
+        raise HTTPException(status_code=404, detail="Документ не найден или нет прав доступа")
+    
     return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
 
 # Загрузка логотипа удалена - используется постоянный SVG

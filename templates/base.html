@@ -274,6 +274,10 @@
             </div>
             
             <div class="d-flex align-items-center">
+                <button class="theme-toggle me-2" onclick="toggleFullscreen()" title="Полноэкранный режим">
+                    <i class="bi bi-fullscreen" id="fullscreen-icon"></i>
+                </button>
+                
                 <button class="theme-toggle me-3" onclick="toggleTheme()" title="Переключить тему">
                     <i class="bi bi-sun-fill" id="theme-icon"></i>
                 </button>
@@ -337,6 +341,39 @@
                 localStorage.setItem('theme', 'dark');
             }
         }
+
+        // Управление полноэкранным режимом
+        function toggleFullscreen() {
+            const fullscreenIcon = document.getElementById('fullscreen-icon');
+            
+            if (!document.fullscreenElement) {
+                // Входим в полноэкранный режим
+                document.documentElement.requestFullscreen().then(() => {
+                    fullscreenIcon.className = 'bi bi-fullscreen-exit';
+                    localStorage.setItem('fullscreen', 'true');
+                }).catch(err => {
+                    console.log('Ошибка входа в полноэкранный режим:', err);
+                });
+            } else {
+                // Выходим из полноэкранного режима
+                document.exitFullscreen().then(() => {
+                    fullscreenIcon.className = 'bi bi-fullscreen';
+                    localStorage.setItem('fullscreen', 'false');
+                }).catch(err => {
+                    console.log('Ошибка выхода из полноэкранного режима:', err);
+                });
+            }
+        }
+
+        // Обновление иконки при изменении полноэкранного режима
+        document.addEventListener('fullscreenchange', function() {
+            const fullscreenIcon = document.getElementById('fullscreen-icon');
+            if (document.fullscreenElement) {
+                fullscreenIcon.className = 'bi bi-fullscreen-exit';
+            } else {
+                fullscreenIcon.className = 'bi bi-fullscreen';
+            }
+        });
 
         // Восстановление темы при загрузке
         document.addEventListener('DOMContentLoaded', function() {
