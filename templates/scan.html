@@ -171,6 +171,8 @@
 <script>
 let isSubmitting = false;
 let autoSubmitTimeout = null;
+let lastInputTime = 0;
+let isManualInput = false;
 
 // Функция для отправки формы с защитой от дублирования
 function submitForm() {
@@ -222,8 +224,9 @@ function showScanFeedback() {
     }
 }
 
-// Автоматическая отправка формы после ввода штрихкода (для сканера)
+// Определение типа ввода (сканер vs ручной)
 document.getElementById('barcode').addEventListener('input', function(e) {
+    const currentTime = Date.now();
     const value = this.value.trim();
     
     // Очищаем предыдущий таймер
@@ -232,11 +235,34 @@ document.getElementById('barcode').addEventListener('input', function(e) {
         autoSubmitTimeout = null;
     }
     
-    // Если длина штрихкода больше 8 символов, считаем что это сканер
-    if (value.length >= 8) {
+    // Определяем тип ввода по скорости
+    if (lastInputTime > 0 && (currentTime - lastInputTime) < 50) {
+        // Быстрый ввод = сканер
+        isManualInput = false;
+    } else if (lastInputTime > 0 && (currentTime - lastInputTime) > 200) {
+        // Медленный ввод = ручной
+        isManualInput = true;
+    }
+    
+    lastInputTime = currentTime;
+    
+    // Автоотправка ТОЛЬКО для сканера
+    if (value.length >= 8 && !isManualInput) {
         autoSubmitTimeout = setTimeout(() => {
             submitForm();
-        }, 300); // Увеличиваем задержку для сканера
+        }, 100); // Короткая задержка для сканера
+    }
+});
+
+// Обработка клавиш для определения ручного ввода
+document.getElementById('barcode').addEventListener('keydown', function(e) {
+    // Любое нажатие клавиши = ручной ввод
+    isManualInput = true;
+    
+    // Очищаем автоотправку при ручном вводе
+    if (autoSubmitTimeout) {
+        clearTimeout(autoSubmitTimeout);
+        autoSubmitTimeout = null;
     }
 });
 
@@ -245,7 +271,7 @@ document.getElementById('barcode').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
         
-        // Очищаем таймер автоотправки если есть
+        // Очищаем таймер автоотправки
         if (autoSubmitTimeout) {
             clearTimeout(autoSubmitTimeout);
             autoSubmitTimeout = null;
@@ -267,19 +293,37 @@ document.getElementById('scanForm').addEventListener('submit', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('barcode').focus();
     isSubmitting = false; // Сбрасываем флаг после загрузки
+    isManualInput = false; // Сбрасываем флаг ручного ввода
+    lastInputTime = 0;
 });
 
 // Возврат фокуса на поле ввода при клике в любом месте
 document.addEventListener('click', function(e) {
     // Не перехватываем фокус если кликнули по кнопке или форме
     if (!e.target.closest('button') && !e.target.closest('form')) {
-        document.getElementById('barcode').focus();
+        const barcodeInput = document.getElementById('barcode');
+        barcodeInput.focus();
+        // Сбрасываем флаги при получении фокуса
+        isManualInput = false;
+        lastInputTime = 0;
+    }
+});
+
+// Сброс флагов при получении фокуса на поле ввода
+document.getElementById('barcode').addEventListener('focus', function() {
+    isManualInput = false;
+    lastInputTime = 0;
+    if (autoSubmitTimeout) {
+        clearTimeout(autoSubmitTimeout);
+        autoSubmitTimeout = null;
     }
 });
 
 // Сброс флага при возврате на страницу
 window.addEventListener('pageshow', function() {
     isSubmitting = false;
+    isManualInput = false;
+    lastInputTime = 0;
     document.getElementById('barcode').value = '';
     document.getElementById('barcode').focus();
 });
