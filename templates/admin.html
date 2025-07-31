@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Панель администратора{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-shield-check text-warning me-2"></i>
+                Панель администратора
+            </h1>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logoModal">
+                    <i class="bi bi-image me-1"></i>
+                    <span class="d-none d-sm-inline">Управление логотипом</span>
+                </button>
+                <a href="/" class="btn btn-outline-secondary d-none d-md-inline-flex">
+                    <i class="bi bi-box-arrow-left me-1"></i>
+                    Выйти
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card stats-card border-primary">
+            <div class="card-body text-center">
+                <div class="stats-number text-primary">{{ stats.total_users }}</div>
+                <p class="text-muted mb-0 small">Пользователей</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card stats-card border-success">
+            <div class="card-body text-center">
+                <div class="stats-number text-success">{{ stats.total_documents }}</div>
+                <p class="text-muted mb-0 small">Всего документов</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card stats-card border-warning">
+            <div class="card-body text-center">
+                <div class="stats-number text-warning">{{ stats.active_documents }}</div>
+                <p class="text-muted mb-0 small">Активных</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card stats-card border-info">
+            <div class="card-body text-center">
+                <div class="stats-number text-info">{{ stats.total_barcodes }}</div>
+                <p class="text-muted mb-0 small">Штрихкодов</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список всех документов -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-files me-2"></i>
+                    Все документы системы ({{ documents|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if documents %}
+                <div class="row">
+                    {% for doc in documents %}
+                    <div class="col-12 mb-3">
+                        <div class="card {{ 'border-success' if doc.status == 'active' else 'border-secondary' }}">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex align-items-center mb-2">
+                                            {% if doc.doc_type == 'Инвентаризация' %}
+                                                <i class="bi bi-clipboard-check text-primary me-2"></i>
+                                            {% else %}
+                                                <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                                            {% endif %}
+                                            <h6 class="mb-0 me-3">{{ doc.doc_type }}</h6>
+                                            {% if doc.status == 'active' %}
+                                                <span class="badge bg-success">Активный</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Закрыт</span>
+                                            {% endif %}
+                                            <span class="badge bg-info ms-2">
+                                                <i class="bi bi-person me-1"></i>
+                                                {{ doc.user_name }}
+                                            </span>
+                                        </div>
+                                        
+                                        {% if doc.comment %}
+                                        <div class="mb-2">
+                                            <small class="text-muted">
+                                                <i class="bi bi-chat-left-text me-1"></i>
+                                                {{ doc.comment }}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div class="small text-muted">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            Создан: {{ doc.created_at[:19].replace('T', ' ') }}
+                                            {% if doc.closed_at %}
+                                                | Закрыт: {{ doc.closed_at[:19].replace('T', ' ') }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                                            {% if doc.status == 'closed' %}
+                                                <form method="post" action="/admin/regenerate_csv/{{ user.id }}" class="d-inline">
+                                                    <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-download me-1"></i>
+                                                        <span class="d-none d-sm-inline">CSV</span>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            
+                                            <button class="btn btn-sm btn-outline-secondary" 
+                                                    onclick="editComment({{ doc.id }}, '{{ doc.comment|e }}')"
+                                                    title="Редактировать комментарий">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            
+                                            <form method="post" action="/admin/delete_document/{{ user.id }}" class="d-inline">
+                                                <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="return confirm('Удалить документ пользователя {{ doc.user_name }}? Это действие нельзя отменить!')"
+                                                        title="Удалить документ">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-files text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">Документы не найдены</h4>
+                    <p class="text-muted">В системе пока нет созданных документов</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для управления логотипом -->
+<div class="modal fade" id="logoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Управление логотипом</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <h6>Текущий логотип:</h6>
+                    <svg class="logo-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 64px; height: 64px;">
+                        <rect width="48" height="48" rx="8" fill="currentColor" fill-opacity="0.1"/>
+                        <rect x="8" y="12" width="32" height="24" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="10" y="14" width="28" height="20" rx="1" fill="currentColor" fill-opacity="0.2"/>
+                        <g transform="translate(12, 18)">
+                            <rect x="0" y="0" width="1" height="8" fill="currentColor"/>
+                            <rect x="2" y="0" width="2" height="8" fill="currentColor"/>
+                            <rect x="5" y="0" width="1" height="8" fill="currentColor"/>
+                            <rect x="7" y="0" width="3" height="8" fill="currentColor"/>
+                            <rect x="11" y="0" width="1" height="8" fill="currentColor"/>
+                            <rect x="13" y="0" width="2" height="8" fill="currentColor"/>
+                            <rect x="16" y="0" width="1" height="8" fill="currentColor"/>
+                            <rect x="18" y="0" width="2" height="8" fill="currentColor"/>
+                            <rect x="21" y="0" width="1" height="8" fill="currentColor"/>
+                            <rect x="23" y="0" width="1" height="8" fill="currentColor"/>
+                        </g>
+                        <path d="M16 30L20 34L32 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                </div>
+                
+                <form id="logoUploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="logoFile" class="form-label">Загрузить новый логотип</label>
+                        <input type="file" class="form-control" id="logoFile" name="logo" accept="image/*">
+                        <div class="form-text">Поддерживаются форматы: JPG, PNG, SVG. Рекомендуемый размер: 48x48px</div>
+                    </div>
+                </form>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Примечание:</strong> В текущей версии используется встроенный SVG логотип. 
+                    Функция загрузки пользовательского логотипа будет доступна в следующих обновлениях.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="uploadLogo()" disabled>
+                    <i class="bi bi-upload me-1"></i>
+                    Загрузить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования комментария -->
+<div class="modal fade" id="commentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать комментарий</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/update_comment/{{ user.id }}">
+                <div class="modal-body">
+                    <input type="hidden" id="edit-doc-id" name="document_id" value="">
+                    <div class="mb-3">
+                        <label for="edit-comment" class="form-label">Комментарий</label>
+                        <textarea class="form-control" id="edit-comment" name="comment" rows="3" 
+                                  placeholder="Введите комментарий к документу..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editComment(docId, currentComment) {
+    document.getElementById('edit-doc-id').value = docId;
+    document.getElementById('edit-comment').value = currentComment;
+    
+    const modal = new bootstrap.Modal(document.getElementById('commentModal'));
+    modal.show();
+}
+
+function uploadLogo() {
+    // Функция загрузки логотипа (заглушка)
+    alert('Функция загрузки логотипа будет доступна в следующих обновлениях');
+}
+</script>
+{% endblock %}

@@ -1,7 +1,7 @@
 {
   "name": "Мобильная инвентаризация",
   "short_name": "Инвентаризация",
-  "description": "Система мобильной инвентаризации и учета прихода товаров",
+  "description": "Система мобильной инвентаризации и учета товаров с поддержкой сканирования штрихкодов",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -9,8 +9,38 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "ru",
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
+    {
+      "src": "/static/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/static/icon-192.png",
       "sizes": "192x192",
@@ -18,10 +48,44 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/static/icon-512.png", 
+      "src": "/static/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Новая инвентаризация",
+      "short_name": "Инвентаризация",
+      "description": "Быстрое создание документа инвентаризации",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/static/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Новый приход",
+      "short_name": "Приход",
+      "description": "Быстрое создание документа прихода",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/static/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
 }

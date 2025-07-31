@@ -346,22 +346,67 @@
         function toggleFullscreen() {
             const fullscreenIcon = document.getElementById('fullscreen-icon');
             
-            if (!document.fullscreenElement) {
-                // Входим в полноэкранный режим
-                document.documentElement.requestFullscreen().then(() => {
-                    fullscreenIcon.className = 'bi bi-fullscreen-exit';
-                    localStorage.setItem('fullscreen', 'true');
-                }).catch(err => {
-                    console.log('Ошибка входа в полноэкранный режим:', err);
-                });
-            } else {
-                // Выходим из полноэкранного режима
-                document.exitFullscreen().then(() => {
+            // Проверяем поддержку различных браузеров
+            const requestFullscreen = document.documentElement.requestFullscreen ||
+                                    document.documentElement.webkitRequestFullscreen ||
+                                    document.documentElement.mozRequestFullScreen ||
+                                    document.documentElement.msRequestFullscreen;
+            
+            const exitFullscreen = document.exitFullscreen ||
+                                  document.webkitExitFullscreen ||
+                                  document.mozCancelFullScreen ||
+                                  document.msExitFullscreen;
+            
+            const fullscreenElement = document.fullscreenElement ||
+                                    document.webkitFullscreenElement ||
+                                    document.mozFullScreenElement ||
+                                    document.msFullscreenElement;
+            
+            // Для iOS Safari используем другой подход
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                // На iOS используем viewport meta для имитации полноэкранного режима
+                const viewport = document.querySelector('meta[name=viewport]');
+                const navbar = document.querySelector('.navbar');
+                const mobileNav = document.querySelector('.mobile-nav');
+                
+                if (navbar.style.display === 'none') {
+                    // Выходим из "полноэкранного" режима
+                    navbar.style.display = 'block';
+                    if (mobileNav) mobileNav.style.display = 'block';
                     fullscreenIcon.className = 'bi bi-fullscreen';
                     localStorage.setItem('fullscreen', 'false');
-                }).catch(err => {
-                    console.log('Ошибка выхода из полноэкранного режима:', err);
-                });
+                } else {
+                    // Входим в "полноэкранный" режим
+                    navbar.style.display = 'none';
+                    if (mobileNav) mobileNav.style.display = 'none';
+                    fullscreenIcon.className = 'bi bi-fullscreen-exit';
+                    localStorage.setItem('fullscreen', 'true');
+                }
+                return;
+            }
+            
+            if (!fullscreenElement) {
+                // Входим в полноэкранный режим
+                if (requestFullscreen) {
+                    requestFullscreen.call(document.documentElement).then(() => {
+                        fullscreenIcon.className = 'bi bi-fullscreen-exit';
+                        localStorage.setItem('fullscreen', 'true');
+                    }).catch(err => {
+                        console.log('Ошибка входа в полноэкранный режим:', err);
+                    });
+                }
+            } else {
+                // Выходим из полноэкранного режима
+                if (exitFullscreen) {
+                    exitFullscreen.call(document).then(() => {
+                        fullscreenIcon.className = 'bi bi-fullscreen';
+                        localStorage.setItem('fullscreen', 'false');
+                    }).catch(err => {
+                        console.log('Ошибка выхода из полноэкранного режима:', err);
+                    });
+                }
             }
         }
 

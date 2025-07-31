@@ -120,6 +120,67 @@ def authenticate_user(name: str, pin: str) -> bool:
     users = load_users_from_file()
     return name in users and users[name] == pin
 
+def is_admin(user_name: str) -> bool:
+    """Проверяет, является ли пользователь администратором"""
+    return user_name == "Администратор"
+
+def get_all_documents() -> List[dict]:
+    """Получает все документы всех пользователей (для админа)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT d.*, u.name as user_name 
+        FROM documents d 
+        JOIN users u ON d.user_id = u.id 
+        ORDER BY d.created_at DESC
+    """)
+    documents = cursor.fetchall()
+    conn.close()
+    
+    return [dict(doc) for doc in documents]
+
+def admin_delete_document(document_id: int) -> bool:
+    """Удаляет документ (админская функция)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Получаем информацию о документе для удаления CSV файла
+    cursor.execute("""
+        SELECT d.*, u.name as user_name 
+        FROM documents d 
+        JOIN users u ON d.user_id = u.id 
+        WHERE d.id = ?
+    """, (document_id,))
+    document = cursor.fetchone()
+    
+    if not document:
+        conn.close()
+        return False
+    
+    # Удаляем CSV файл если он существует
+    if document['status'] == 'closed':
+        try:
+            doc_date = datetime.fromisoformat(document['created_at']).strftime('%Y%m%d_%H%M%S')
+            csv_filename = f"{document['doc_type']}_{document['user_name']}_{doc_date}.csv"
+            csv_filepath = os.path.join("static", "documents", csv_filename)
+            
+            if os.path.exists(csv_filepath):
+                os.remove(csv_filepath)
+                print(f"Админ удалил CSV файл: {csv_filename}")
+        except Exception as e:
+            print(f"Ошибка при удалении CSV файла: {e}")
+    
+    # Удаляем штрихкоды документа
+    cursor.execute("DELETE FROM barcodes WHERE document_id = ?", (document_id,))
+    
+    # Удаляем сам документ
+    cursor.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+    
+    conn.commit()
+    conn.close()
+    return True
+
 def get_or_create_user(name: str) -> int:
     """Получает пользователя из БД или создает его если он есть в файле"""
     conn = get_db_connection()
@@ -232,18 +293,35 @@ def get_user_documents(user_id: int) -> List[dict]:
     return [dict(doc) for doc in documents]
 
 def delete_document(document_id: int, user_id: int) -> bool:
-    """Удаляет документ и все связанные штрихкоды"""
+    """Удаляет документ, все связанные штрихкоды и CSV файл"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Проверяем, что документ принадлежит пользователю
-    cursor.execute(
-        "SELECT id FROM documents WHERE id = ? AND user_id = ?",
-        (document_id, user_id)
-    )
-    if not cursor.fetchone():
+    # Получаем информацию о документе для удаления CSV файла
+    cursor.execute("""
+        SELECT d.*, u.name as user_name 
+        FROM documents d 
+        JOIN users u ON d.user_id = u.id 
+        WHERE d.id = ? AND d.user_id = ?
+    """, (document_id, user_id))
+    document = cursor.fetchone()
+    
+    if not document:
         conn.close()
         return False
+    
+    # Удаляем CSV файл если он существует
+    if document['status'] == 'closed':
+        try:
+            doc_date = datetime.fromisoformat(document['created_at']).strftime('%Y%m%d_%H%M%S')
+            csv_filename = f"{document['doc_type']}_{document['user_name']}_{doc_date}.csv"
+            csv_filepath = os.path.join("static", "documents", csv_filename)
+            
+            if os.path.exists(csv_filepath):
+                os.remove(csv_filepath)
+                print(f"Удален CSV файл: {csv_filename}")
+        except Exception as e:
+            print(f"Ошибка при удалении CSV файла: {e}")
     
     # Удаляем штрихкоды документа
     cursor.execute("DELETE FROM barcodes WHERE document_id = ?", (document_id,))
@@ -377,6 +455,13 @@ async def dashboard(request: Request, user_id: int):
         conn.close()
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
+    user_dict = dict(user)
+    
+    # Если это администратор, перенаправляем на админ-панель
+    if is_admin(user_dict['name']):
+        conn.close()
+        return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
+    
     # Проверяем активный документ
     active_doc = get_active_document(user_id)
     
@@ -387,7 +472,7 @@ async def dashboard(request: Request, user_id: int):
     
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
-        "user": dict(user),
+        "user": user_dict,
         "active_doc": active_doc,
         "documents": user_documents
     })
@@ -397,10 +482,22 @@ async def create_new_document(user_id: int, doc_type: str = Form(...), comment: 
     if doc_type not in ['Инвентаризация', 'Приход']:
         raise HTTPException(status_code=400, detail="Неверный тип документа")
     
-    # Закрываем активный документ если есть
+    # Проверяем, есть ли уже активный документ
     active_doc = get_active_document(user_id)
     if active_doc:
-        close_document(active_doc['id'])
+        # Если активный документ того же типа, предотвращаем дублирование
+        if active_doc['doc_type'] == doc_type:
+            return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
+        
+        # Проверяем, есть ли штрихкоды в активном документе
+        barcodes = get_document_barcodes(active_doc['id'])
+        if not barcodes:
+            # Если документ пустой, удаляем его вместо закрытия
+            delete_document(active_doc['id'], user_id)
+        else:
+            # Если есть штрихкоды, закрываем документ
+            close_document(active_doc['id'])
+            generate_csv(active_doc['id'])
     
     # Создаем новый документ с комментарием
     document_id = create_document(user_id, doc_type, comment.strip())
@@ -482,6 +579,11 @@ async def close_active_document(user_id: int):
     if not active_doc:
         raise HTTPException(status_code=400, detail="Нет активного документа")
     
+    # Проверяем, есть ли штрихкоды в документе
+    barcodes = get_document_barcodes(active_doc['id'])
+    if not barcodes:
+        raise HTTPException(status_code=400, detail="Нельзя закрыть пустой документ. Добавьте хотя бы один штрихкод.")
+    
     close_document(active_doc['id'])
     generate_csv(active_doc['id'])
     
@@ -507,6 +609,83 @@ async def update_comment(user_id: int, document_id: int = Form(...), comment: st
         raise HTTPException(status_code=404, detail="Документ не найден или нет прав доступа")
     
     return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
+
+# Админ-панель
+@app.get("/admin/{user_id}", response_class=HTMLResponse)
+async def admin_panel(request: Request, user_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Получаем информацию о пользователе
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    
+    if not user or not is_admin(dict(user)['name']):
+        conn.close()
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Получаем все документы всех пользователей
+    all_documents = get_all_documents()
+    
+    # Получаем статистику
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM documents")
+    total_documents = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM documents WHERE status = 'active'")
+    active_documents = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM barcodes")
+    total_barcodes = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "user": dict(user),
+        "documents": all_documents,
+        "stats": {
+            "total_users": total_users,
+            "total_documents": total_documents,
+            "active_documents": active_documents,
+            "total_barcodes": total_barcodes
+        }
+    })
+
+@app.post("/admin/delete_document/{user_id}")
+async def admin_delete_doc(user_id: int, document_id: int = Form(...)):
+    # Проверяем права администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or not is_admin(user['name']):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    success = admin_delete_document(document_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    
+    return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
+
+@app.post("/admin/regenerate_csv/{user_id}")
+async def admin_regenerate_csv(user_id: int, document_id: int = Form(...)):
+    # Проверяем права администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or not is_admin(user['name']):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    filename = generate_csv(document_id)
+    return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
 
 # Загрузка логотипа удалена - используется постоянный SVG
 
