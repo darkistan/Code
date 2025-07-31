@@ -88,6 +88,26 @@ def init_db():
     ''')
     
     conn.commit()
+    
+    # Создаем администратора если его нет
+    cursor.execute("SELECT id FROM users WHERE name = ?", ("Администратор",))
+    if not cursor.fetchone():
+        # Проверяем, что администратор есть в файле users.txt
+        try:
+            with open('users.txt', 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('Администратор:'):
+                        cursor.execute(
+                            "INSERT INTO users (name, created_at) VALUES (?, ?)",
+                            ("Администратор", datetime.now().isoformat())
+                        )
+                        conn.commit()
+                        print("Пользователь 'Администратор' автоматически создан в БД")
+                        break
+        except FileNotFoundError:
+            pass
+    
     conn.close()
 
 # Инициализация БД при запуске
