@@ -142,7 +142,7 @@ def authenticate_user(name: str, pin: str) -> bool:
 
 def is_admin(user_name: str) -> bool:
     """Проверяет, является ли пользователь администратором"""
-    return user_name == "Администратор"
+    return user_name == "admin"
 
 def get_all_documents() -> List[dict]:
     """Получает все документы всех пользователей (для админа)"""
@@ -425,16 +425,6 @@ async def home(request: Request):
 
 @app.post("/login")
 async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
-    # Исправляем кодировку для кириллических символов
-    try:
-        # Пытаемся исправить неправильную кодировку
-        if isinstance(name, str):
-            # Если строка была неправильно декодирована как latin-1, исправляем на utf-8
-            name_bytes = name.encode('latin-1')
-            name = name_bytes.decode('utf-8')
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        # Если исправление не удалось, оставляем как есть
-        pass
     
     if not name.strip():
         users = load_users_from_file()
