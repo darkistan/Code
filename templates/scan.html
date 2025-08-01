@@ -76,53 +76,48 @@
     </div>
 </div>
 
-<!-- Статистика -->
-<div class="row mb-4">
-    <div class="col-12 col-md-4 mb-3 mb-md-0">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="stats-number text-primary pulse">{{ barcodes|length }}</div>
-                <p class="text-muted mb-0 small">Всего отсканировано</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 mb-3 mb-md-0">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="text-info small">{{ document.created_at[:19].replace('T', ' ') }}</div>
-                <p class="text-muted mb-0 small">Время создания</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4">
-        <div class="card stats-card">
-            <div class="card-body">
-                <div class="text-success">{{ user.name }}</div>
-                <p class="text-muted mb-0 small">Оператор</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% if document.comment %}
-<!-- Комментарий к документу -->
-<div class="row mb-4">
+<!-- Компактная статистика -->
+<div class="row mb-3">
     <div class="col-12">
-        <div class="card border-info">
+        <div class="card">
             <div class="card-body py-2">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-chat-left-text text-info me-2"></i>
-                    <small class="text-muted mb-0">{{ document.comment }}</small>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-upc-scan text-primary me-2"></i>
+                            <div>
+                                <strong class="text-primary pulse">{{ barcodes|length }}</strong>
+                                <small class="text-muted d-block">штрихкодов</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-clock text-info me-2"></i>
+                            <div>
+                                <strong class="text-info">{{ document.created_at[11:16] }}</strong>
+                                <small class="text-muted d-block">создан</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-person text-success me-2"></i>
+                            <div>
+                                <strong class="text-success">{{ user.name.split()[0] if ' ' in user.name else user.name }}</strong>
+                                <small class="text-muted d-block">оператор</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Список штрихкодов -->
 {% if barcodes %}
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -157,6 +152,23 @@
         </div>
     </div>
 </div>
+{% endif %}
+
+{% if document.comment %}
+<!-- Комментарий к документу -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-chat-left-text text-info me-2"></i>
+                    <small class="text-muted mb-0">{{ document.comment }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% else %}
 <div class="row">
     <div class="col-12">

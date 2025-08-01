@@ -369,6 +369,22 @@ def update_document_comment(document_id: int, user_id: int, comment: str) -> boo
     conn.close()
     return success
 
+def admin_update_document_comment(document_id: int, comment: str) -> bool:
+    """Обновляет комментарий к документу (админская функция)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Админ может редактировать любой документ
+    cursor.execute(
+        "UPDATE documents SET comment = ? WHERE id = ?",
+        (comment, document_id)
+    )
+    
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
+
 def generate_csv(document_id: int) -> str:
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -625,11 +641,26 @@ async def delete_user_document(user_id: int, document_id: int = Form(...)):
 
 @app.post("/update_comment/{user_id}")
 async def update_comment(user_id: int, document_id: int = Form(...), comment: str = Form(...)):
-    success = update_document_comment(document_id, user_id, comment.strip())
+    # Проверяем, является ли пользователь администратором
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if user and is_admin(user['name']):
+        # Для админа - обновляем без проверки прав доступа
+        success = admin_update_document_comment(document_id, comment.strip())
+        redirect_url = f"/admin/{user_id}"
+    else:
+        # Для обычного пользователя - обычная проверка
+        success = update_document_comment(document_id, user_id, comment.strip())
+        redirect_url = f"/dashboard/{user_id}"
+    
     if not success:
         raise HTTPException(status_code=404, detail="Документ не найден или нет прав доступа")
     
-    return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
+    return RedirectResponse(url=redirect_url, status_code=303)
 
 # Админ-панель
 @app.get("/admin/{user_id}", response_class=HTMLResponse)
@@ -708,7 +739,114 @@ async def admin_regenerate_csv(user_id: int, document_id: int = Form(...)):
     filename = generate_csv(document_id)
     return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
 
-# Загрузка логотипа удалена - используется постоянный SVG
+@app.get("/admin/document/{user_id}/{document_id}", response_class=HTMLResponse)
+async def admin_view_document(request: Request, user_id: int, document_id: int):
+    # Проверяем права администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    
+    if not user or not is_admin(user['name']):
+        conn.close()
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Получаем документ с информацией о пользователе
+    cursor.execute("""
+        SELECT d.*, u.name as user_name 
+        FROM documents d 
+        JOIN users u ON d.user_id = u.id 
+        WHERE d.id = ?
+    """, (document_id,))
+    document = cursor.fetchone()
+    
+    if not document:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    
+    # Получаем штрихкоды документа
+    barcodes = get_document_barcodes(document_id)
+    
+    conn.close()
+    
+    return templates.TemplateResponse("admin_document.html", {
+        "request": request,
+        "user": dict(user),
+        "document": dict(document),
+        "barcodes": barcodes
+    })
+
+# Загрузка логотипа
+@app.post("/admin/upload_logo/{user_id}")
+async def upload_logo(user_id: int, logo: UploadFile = File(...)):
+    # Проверяем права администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or not is_admin(user['name']):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Проверяем тип файла
+    if not logo.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Файл должен быть изображением")
+    
+    # Создаем папку для логотипов если её нет
+    os.makedirs("static/logo", exist_ok=True)
+    
+    # Определяем расширение файла
+    file_extension = logo.filename.split('.')[-1].lower()
+    if file_extension not in ['jpg', 'jpeg', 'png', 'svg']:
+        raise HTTPException(status_code=400, detail="Поддерживаются только JPG, PNG, SVG файлы")
+    
+    # Сохраняем файл как company_logo
+    logo_filename = f"company_logo.{file_extension}"
+    logo_path = os.path.join("static", "logo", logo_filename)
+    
+    # Удаляем старые логотипы
+    for ext in ['jpg', 'jpeg', 'png', 'svg']:
+        old_logo = os.path.join("static", "logo", f"company_logo.{ext}")
+        if os.path.exists(old_logo):
+            os.remove(old_logo)
+    
+    # Сохраняем новый логотип
+    content = await logo.read()
+    with open(logo_path, "wb") as f:
+        f.write(content)
+    
+    return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
+
+@app.get("/logo")
+async def get_logo():
+    """Возвращает логотип компании или стандартный SVG"""
+    # Ищем загруженный логотип
+    for ext in ['png', 'jpg', 'jpeg', 'svg']:
+        logo_path = os.path.join("static", "logo", f"company_logo.{ext}")
+        if os.path.exists(logo_path):
+            return FileResponse(logo_path)
+    
+    # Если логотип не найден, возвращаем стандартный SVG
+    svg_content = '''<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="8" fill="currentColor" fill-opacity="0.1"/>
+        <rect x="8" y="12" width="32" height="24" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+        <rect x="10" y="14" width="28" height="20" rx="1" fill="currentColor" fill-opacity="0.2"/>
+        <g transform="translate(12, 18)">
+            <rect x="0" y="0" width="1" height="8" fill="currentColor"/>
+            <rect x="2" y="0" width="2" height="8" fill="currentColor"/>
+            <rect x="5" y="0" width="1" height="8" fill="currentColor"/>
+            <rect x="7" y="0" width="3" height="8" fill="currentColor"/>
+            <rect x="11" y="0" width="1" height="8" fill="currentColor"/>
+            <rect x="13" y="0" width="2" height="8" fill="currentColor"/>
+            <rect x="16" y="0" width="1" height="8" fill="currentColor"/>
+            <rect x="18" y="0" width="2" height="8" fill="currentColor"/>
+            <rect x="21" y="0" width="1" height="8" fill="currentColor"/>
+            <rect x="23" y="0" width="1" height="8" fill="currentColor"/>
+        </g>
+        <path d="M16 30L20 34L32 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>'''
+    return Response(content=svg_content, media_type="image/svg+xml")
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):

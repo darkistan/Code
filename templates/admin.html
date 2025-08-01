@@ -117,6 +117,12 @@
                                     
                                     <div class="col-md-4">
                                         <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                                            <a href="/admin/document/{{ user.id }}/{{ doc.id }}" 
+                                               class="btn btn-sm btn-outline-info"
+                                               title="Просмотреть документ">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            
                                             {% if doc.status == 'closed' %}
                                                 <form method="post" action="/admin/regenerate_csv/{{ user.id }}" class="d-inline">
                                                     <input type="hidden" name="document_id" value="{{ doc.id }}">
@@ -172,43 +178,30 @@
             <div class="modal-body">
                 <div class="text-center mb-4">
                     <h6>Текущий логотип:</h6>
-                    <svg class="logo-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 64px; height: 64px;">
-                        <rect width="48" height="48" rx="8" fill="currentColor" fill-opacity="0.1"/>
-                        <rect x="8" y="12" width="32" height="24" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
-                        <rect x="10" y="14" width="28" height="20" rx="1" fill="currentColor" fill-opacity="0.2"/>
-                        <g transform="translate(12, 18)">
-                            <rect x="0" y="0" width="1" height="8" fill="currentColor"/>
-                            <rect x="2" y="0" width="2" height="8" fill="currentColor"/>
-                            <rect x="5" y="0" width="1" height="8" fill="currentColor"/>
-                            <rect x="7" y="0" width="3" height="8" fill="currentColor"/>
-                            <rect x="11" y="0" width="1" height="8" fill="currentColor"/>
-                            <rect x="13" y="0" width="2" height="8" fill="currentColor"/>
-                            <rect x="16" y="0" width="1" height="8" fill="currentColor"/>
-                            <rect x="18" y="0" width="2" height="8" fill="currentColor"/>
-                            <rect x="21" y="0" width="1" height="8" fill="currentColor"/>
-                            <rect x="23" y="0" width="1" height="8" fill="currentColor"/>
-                        </g>
-                        <path d="M16 30L20 34L32 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </svg>
+                    <div class="mb-3">
+                        <img src="/logo" alt="Текущий логотип" id="currentLogo"
+                             style="width: 80px; height: 80px; object-fit: contain; border-radius: 12px; 
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    </div>
                 </div>
                 
-                <form id="logoUploadForm" enctype="multipart/form-data">
+                <form method="post" action="/admin/upload_logo/{{ user.id }}" enctype="multipart/form-data" id="logoUploadForm">
                     <div class="mb-3">
                         <label for="logoFile" class="form-label">Загрузить новый логотип</label>
-                        <input type="file" class="form-control" id="logoFile" name="logo" accept="image/*">
-                        <div class="form-text">Поддерживаются форматы: JPG, PNG, SVG. Рекомендуемый размер: 48x48px</div>
+                        <input type="file" class="form-control" id="logoFile" name="logo" accept="image/*" required>
+                        <div class="form-text">Поддерживаются форматы: JPG, PNG, SVG. Рекомендуемый размер: до 1MB</div>
                     </div>
                 </form>
                 
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Примечание:</strong> В текущей версии используется встроенный SVG логотип. 
-                    Функция загрузки пользовательского логотипа будет доступна в следующих обновлениях.
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Готово к использованию:</strong> Загруженный логотип будет отображаться на всех страницах системы, 
+                    включая страницу авторизации и навигационную панель.
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                <button type="button" class="btn btn-primary" onclick="uploadLogo()" disabled>
+                <button type="submit" form="logoUploadForm" class="btn btn-primary">
                     <i class="bi bi-upload me-1"></i>
                     Загрузить
                 </button>
@@ -254,9 +247,16 @@ function editComment(docId, currentComment) {
     modal.show();
 }
 
-function uploadLogo() {
-    // Функция загрузки логотипа (заглушка)
-    alert('Функция загрузки логотипа будет доступна в следующих обновлениях');
-}
+// Предпросмотр логотипа при выборе файла
+document.getElementById('logoFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('currentLogo').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
 </script>
 {% endblock %}
