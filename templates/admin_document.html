@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Просмотр документа - Панель администратора{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-file-text text-info me-2"></i>
+                Просмотр документа
+            </h1>
+            <div class="d-flex gap-2">
+                <a href="/admin/{{ user.id }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    <span class="d-none d-sm-inline">Назад к списку</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Информация о документе -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    {% if document.doc_type == 'Инвентаризация' %}
+                        <i class="bi bi-clipboard-check text-primary me-2"></i>
+                    {% else %}
+                        <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                    {% endif %}
+                    {{ document.doc_type }}
+                    {% if document.status == 'active' %}
+                        <span class="badge bg-success ms-2">Активный</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-2">Закрыт</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Оператор:</strong> 
+                            <span class="badge bg-info">
+                                <i class="bi bi-person me-1"></i>
+                                {{ document.user_name }}
+                            </span>
+                        </p>
+                        <p><strong>Создан:</strong> {{ document.created_at[:19].replace('T', ' ') }}</p>
+                        {% if document.closed_at %}
+                        <p><strong>Закрыт:</strong> {{ document.closed_at[:19].replace('T', ' ') }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Всего штрихкодов:</strong> 
+                            <span class="badge bg-primary">{{ barcodes|length }}</span>
+                        </p>
+                        {% if document.comment %}
+                        <p><strong>Комментарий:</strong></p>
+                        <div class="alert alert-info py-2">
+                            <i class="bi bi-chat-left-text me-1"></i>
+                            {{ document.comment }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Действия с документом -->
+                <div class="d-flex gap-2 mt-3">
+                    {% if document.status == 'closed' %}
+                        <form method="post" action="/admin/regenerate_csv/{{ user.id }}" class="d-inline">
+                            <input type="hidden" name="document_id" value="{{ document.id }}">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-download me-1"></i>
+                                Выгрузить CSV
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-secondary" 
+                            onclick="editComment({{ document.id }}, '{{ document.comment|e }}')"
+                            title="Редактировать комментарий">
+                        <i class="bi bi-pencil me-1"></i>
+                        Редактировать комментарий
+                    </button>
+                    
+                    <form method="post" action="/admin/delete_document/{{ user.id }}" class="d-inline">
+                        <input type="hidden" name="document_id" value="{{ document.id }}">
+                        <button type="submit" class="btn btn-outline-danger" 
+                                onclick="return confirm('Удалить документ пользователя {{ document.user_name }}? Это действие нельзя отменить!')">
+                            <i class="bi bi-trash me-1"></i>
+                            Удалить документ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список штрихкодов -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-upc-scan me-2"></i>
+                    Штрихкоды ({{ barcodes|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if barcodes %}
+                <div class="row">
+                    {% for barcode in barcodes %}
+                    <div class="col-12 mb-2">
+                        <div class="barcode-item p-3 rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="font-monospace">{{ barcode.code }}</strong>
+                                    <small class="text-muted ms-3">
+                                        <i class="bi bi-clock me-1"></i>
+                                        {{ barcode.scanned_at[:19].replace('T', ' ') }}
+                                    </small>
+                                </div>
+                                <div class="text-muted small">
+                                    #{{ loop.index }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-upc-scan text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">Штрихкодов нет</h4>
+                    <p class="text-muted">В этом документе пока нет отсканированных штрихкодов</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования комментария -->
+<div class="modal fade" id="commentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать комментарий</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/update_comment/{{ user.id }}">
+                <div class="modal-body">
+                    <input type="hidden" id="edit-doc-id" name="document_id" value="">
+                    <div class="mb-3">
+                        <label for="edit-comment" class="form-label">Комментарий</label>
+                        <textarea class="form-control" id="edit-comment" name="comment" rows="3" 
+                                  placeholder="Введите комментарий к документу..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editComment(docId, currentComment) {
+    document.getElementById('edit-doc-id').value = docId;
+    document.getElementById('edit-comment').value = currentComment;
+    
+    const modal = new bootstrap.Modal(document.getElementById('commentModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

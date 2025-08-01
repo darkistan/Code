@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления - {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-house-door me-2"></i>
+                Панель управления
+            </h1>
+            <a href="/" class="btn btn-outline-secondary d-none d-md-inline-flex">
+                <i class="bi bi-box-arrow-left me-1"></i>
+                Выйти
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if active_doc %}
+<!-- Активный документ -->
+<div class="row mb-4">
+    <div class="col-12">
+                    <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-text me-2"></i>
+                        Активный документ
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-12 col-md-6 mb-3 mb-md-0">
+                            <h6 class="text-success mb-2">{{ active_doc.doc_type }}</h6>
+                            <p class="text-muted mb-0 small">
+                                <i class="bi bi-calendar me-1"></i>
+                                Создан: {{ active_doc.created_at[:19].replace('T', ' ') }}
+                            </p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="d-grid d-md-flex gap-2 justify-content-md-end">
+                                <a href="/scan/{{ user.id }}" class="btn btn-success">
+                                    <i class="bi bi-qr-code-scan me-1"></i>
+                                    <span class="d-none d-sm-inline">Продолжить </span>Сканирование
+                                </a>
+                                <form method="post" action="/close_document/{{ user.id }}" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger w-100 w-md-auto" 
+                                            onclick="return confirm('Закрыть документ и сохранить CSV?')">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        <span class="d-none d-sm-inline">Завершить </span>Документ
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+{% else %}
+<!-- Создание нового документа -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Создать новый документ
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Выберите тип документа для начала работы:</p>
+                
+                <!-- Форма создания документа с комментарием -->
+                <form method="post" action="/create_document/{{ user.id }}" id="createDocForm">
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Комментарий к документу (необязательно)</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="2" 
+                                  placeholder="Введите описание или комментарий к документу..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <button type="submit" name="doc_type" value="Инвентаризация" 
+                                    class="btn btn-outline-primary btn-lg w-100 h-100 py-4">
+                                <i class="bi bi-clipboard-check" style="font-size: 2rem;"></i>
+                                <div class="mt-2">
+                                    <strong>Инвентаризация</strong>
+                                    <div class="small text-muted">Подсчет товаров на складе</div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="submit" name="doc_type" value="Приход" 
+                                    class="btn btn-outline-success btn-lg w-100 h-100 py-4">
+                                <i class="bi bi-box-arrow-in-down" style="font-size: 2rem;"></i>
+                                <div class="mt-2">
+                                    <strong>Приход</strong>
+                                    <div class="small text-muted">Поступление товаров</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- История документов -->
+{% if documents %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    История документов
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <div class="row">
+                        {% for doc in documents %}
+                        <div class="col-12 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center mb-2">
+                                                {% if doc.doc_type == 'Инвентаризация' %}
+                                                    <i class="bi bi-clipboard-check text-primary me-2"></i>
+                                                {% else %}
+                                                    <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                                                {% endif %}
+                                                <h6 class="mb-0 me-3">{{ doc.doc_type }}</h6>
+                                                {% if doc.status == 'active' %}
+                                                    <span class="badge bg-success">Активный</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Закрыт</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if doc.comment %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-chat-left-text me-1"></i>
+                                                    {{ doc.comment }}
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <div class="small text-muted">
+                                                <i class="bi bi-calendar me-1"></i>
+                                                Создан: {{ doc.created_at[:19].replace('T', ' ') }}
+                                                {% if doc.closed_at %}
+                                                    | Закрыт: {{ doc.closed_at[:19].replace('T', ' ') }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                                                {% if doc.status == 'closed' %}
+                                                    <form method="post" action="/regenerate_csv/{{ user.id }}" class="d-inline">
+                                                        <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-download me-1"></i>
+                                                            <span class="d-none d-sm-inline">Выгрузить</span>
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    <a href="/scan/{{ user.id }}" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-qr-code-scan me-1"></i>
+                                                        <span class="d-none d-sm-inline">Открыть</span>
+                                                    </a>
+                                                {% endif %}
+                                                
+                                                <button class="btn btn-sm btn-outline-secondary" 
+                                                        onclick="editComment({{ doc.id }}, '{{ doc.comment|e }}')"
+                                                        title="Редактировать комментарий">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                
+                                                <form method="post" action="/delete_document/{{ user.id }}" class="d-inline">
+                                                    <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="return confirm('Удалить документ? Это действие нельзя отменить!')"
+                                                            title="Удалить документ">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Модальное окно для редактирования комментария -->
+<div class="modal fade" id="commentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать комментарий</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/update_comment/{{ user.id }}">
+                <div class="modal-body">
+                    <input type="hidden" id="edit-doc-id" name="document_id" value="">
+                    <div class="mb-3">
+                        <label for="edit-comment" class="form-label">Комментарий</label>
+                        <textarea class="form-control" id="edit-comment" name="comment" rows="3" 
+                                  placeholder="Введите комментарий к документу..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editComment(docId, currentComment) {
+    document.getElementById('edit-doc-id').value = docId;
+    document.getElementById('edit-comment').value = currentComment;
+    
+    const modal = new bootstrap.Modal(document.getElementById('commentModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

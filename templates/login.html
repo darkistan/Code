@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Мобильная инвентаризация{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div class="mb-3">
+                        <img src="/logo" alt="Логотип компании" 
+                             style="width: 80px; height: 80px; object-fit: contain; border-radius: 16px; 
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    </div>
+                    <h2 class="card-title">Добро пожаловать</h2>
+                    <p class="text-muted">Введите ваше имя и ПИН-код для входа в систему</p>
+                </div>
+                
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    {{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/login" id="loginForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Имя пользователя</label>
+                        <select class="form-select form-select-lg" 
+                                id="name" 
+                                name="name" 
+                                required
+                                autofocus>
+                            <option value="">Выберите пользователя</option>
+                            {% for user in users %}
+                            <option value="{{ user }}">{{ user }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="pin" class="form-label">ПИН-код</label>
+                        <input type="password" 
+                               class="form-control form-control-lg" 
+                               id="pin" 
+                               name="pin" 
+                               placeholder="Введите ПИН-код"
+                               maxlength="4"
+                               required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>
+                            Войти
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Доступ только для зарегистрированных пользователей
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Автофокус на выпадающий список при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    const nameSelect = document.getElementById('name');
+    if (nameSelect) {
+        nameSelect.focus();
+    }
+});
+</script>
+{% endblock %}
