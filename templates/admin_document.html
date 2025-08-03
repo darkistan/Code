@@ -67,34 +67,7 @@
                     </div>
                 </div>
                 
-                <!-- Действия с документом -->
-                <div class="d-flex gap-2 mt-3">
-                    {% if document.status == 'closed' %}
-                        <form method="post" action="/admin/regenerate_csv/{{ user.id }}" class="d-inline">
-                            <input type="hidden" name="document_id" value="{{ document.id }}">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="bi bi-download me-1"></i>
-                                Выгрузить CSV
-                            </button>
-                        </form>
-                    {% endif %}
-                    
-                    <button class="btn btn-outline-secondary" 
-                            onclick="editComment({{ document.id }}, '{{ document.comment|e }}')"
-                            title="Редактировать комментарий">
-                        <i class="bi bi-pencil me-1"></i>
-                        Редактировать комментарий
-                    </button>
-                    
-                    <form method="post" action="/admin/delete_document/{{ user.id }}" class="d-inline">
-                        <input type="hidden" name="document_id" value="{{ document.id }}">
-                        <button type="submit" class="btn btn-outline-danger" 
-                                onclick="return confirm('Удалить документ пользователя {{ document.user_name }}? Это действие нельзя отменить!')">
-                            <i class="bi bi-trash me-1"></i>
-                            Удалить документ
-                        </button>
-                    </form>
-                </div>
+
             </div>
         </div>
     </div>
@@ -144,41 +117,4 @@
     </div>
 </div>
 
-<!-- Модальное окно для редактирования комментария -->
-<div class="modal fade" id="commentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Редактировать комментарий</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" action="/update_comment/{{ user.id }}">
-                <div class="modal-body">
-                    <input type="hidden" id="edit-doc-id" name="document_id" value="">
-                    <div class="mb-3">
-                        <label for="edit-comment" class="form-label">Комментарий</label>
-                        <textarea class="form-control" id="edit-comment" name="comment" rows="3" 
-                                  placeholder="Введите комментарий к документу..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function editComment(docId, currentComment) {
-    document.getElementById('edit-doc-id').value = docId;
-    document.getElementById('edit-comment').value = currentComment;
-    
-    const modal = new bootstrap.Modal(document.getElementById('commentModal'));
-    modal.show();
-}
-</script>
 {% endblock %}

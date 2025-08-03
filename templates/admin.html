@@ -11,9 +11,13 @@
                 Панель администратора
             </h1>
             <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#usersModal">
+                    <i class="bi bi-people me-1"></i>
+                    <span class="d-none d-sm-inline">Пользователи</span>
+                </button>
                 <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logoModal">
                     <i class="bi bi-image me-1"></i>
-                    <span class="d-none d-sm-inline">Управление логотипом</span>
+                    <span class="d-none d-sm-inline">Логотип</span>
                 </button>
                 <a href="/" class="btn btn-outline-secondary d-none d-md-inline-flex">
                     <i class="bi bi-box-arrow-left me-1"></i>
@@ -232,6 +236,109 @@
                     <button type="submit" class="btn btn-primary">Сохранить</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно управления пользователями -->
+<div class="modal fade" id="usersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-people me-2"></i>
+                    Управление пользователями
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Добавление нового пользователя -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-person-plus me-1"></i>
+                            Добавить пользователя
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/admin/add_user/{{ user.id }}">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="newUserName" class="form-label">Имя пользователя</label>
+                                    <input type="text" class="form-control" id="newUserName" name="name" 
+                                           placeholder="Введите имя пользователя" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="newUserPin" class="form-label">PIN-код</label>
+                                    <input type="text" class="form-control" id="newUserPin" name="pin" 
+                                           placeholder="Введите PIN-код" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Добавить пользователя
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Список пользователей -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-people me-1"></i>
+                            Список пользователей ({{ users|length }})
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Имя пользователя</th>
+                                        <th>Дата создания</th>
+                                        <th class="text-center">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user_item in users %}
+                                    <tr>
+                                        <td>{{ user_item.id }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-person-circle me-2 text-muted"></i>
+                                                {{ user_item.name }}
+                                                {% if user_item.name == 'admin' %}
+                                                    <span class="badge bg-warning ms-2">Админ</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>{{ user_item.created_at[:19].replace('T', ' ') }}</td>
+                                        <td class="text-center">
+                                            {% if user_item.name != 'admin' and user_item.id != user.id %}
+                                                <form method="post" action="/admin/delete_user/{{ user.id }}" class="d-inline">
+                                                    <input type="hidden" name="delete_user_id" value="{{ user_item.id }}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                            onclick="return confirm('Удалить пользователя {{ user_item.name }}? Все его документы будут удалены!')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <span class="text-muted small">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
         </div>
     </div>
 </div>

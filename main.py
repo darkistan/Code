@@ -160,6 +160,73 @@ def get_all_documents() -> List[dict]:
     
     return [dict(doc) for doc in documents]
 
+def get_all_users():
+    """Получить всех пользователей из базы данных"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM users ORDER BY name")
+    users = cursor.fetchall()
+    conn.close()
+    
+    return [dict(user) for user in users]
+
+def add_user_to_system(name: str, pin: str):
+    """Добавить пользователя в систему (в users.txt и в базу данных)"""
+    # Добавляем в users.txt
+    with open('users.txt', 'a', encoding='utf-8') as f:
+        f.write(f'\n{name}:{pin}')
+    
+    # Добавляем в базу данных
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "INSERT INTO users (name, created_at) VALUES (?, ?)",
+        (name, datetime.now().isoformat())
+    )
+    user_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return user_id
+
+def delete_user_from_system(user_id: int):
+    """Удалить пользователя из системы"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Получаем имя пользователя
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return False
+    
+    user_name = user['name']
+    
+    # Удаляем из базы данных (каскадно удалятся документы и штрихкоды)
+    cursor.execute("DELETE FROM barcodes WHERE document_id IN (SELECT id FROM documents WHERE user_id = ?)", (user_id,))
+    cursor.execute("DELETE FROM documents WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    # Удаляем из users.txt
+    try:
+        with open('users.txt', 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        with open('users.txt', 'w', encoding='utf-8') as f:
+            for line in lines:
+                if line.strip() and not line.strip().startswith(f'{user_name}:'):
+                    f.write(line)
+    except Exception as e:
+        print(f"Ошибка при удалении пользователя из users.txt: {e}")
+    
+    return True
+
 def admin_delete_document(document_id: int) -> bool:
     """Удаляет документ (админская функция)"""
     conn = get_db_connection()
@@ -704,6 +771,9 @@ async def admin_panel(request: Request, user_id: int):
     # Получаем все документы всех пользователей
     all_documents = get_all_documents()
     
+    # Получаем всех пользователей
+    all_users = get_all_users()
+    
     # Получаем статистику
     cursor.execute("SELECT COUNT(*) FROM users")
     total_users = cursor.fetchone()[0]
@@ -723,6 +793,7 @@ async def admin_panel(request: Request, user_id: int):
         "request": request,
         "user": dict(user),
         "documents": all_documents,
+        "users": all_users,
         "stats": {
             "total_users": total_users,
             "total_documents": total_documents,
@@ -842,6 +913,80 @@ async def upload_logo(user_id: int, logo: UploadFile = File(...)):
         f.write(content)
     
     return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
+
+@app.post("/admin/add_user/{user_id}")
+async def admin_add_user(user_id: int, name: str = Form(...), pin: str = Form(...)):
+    """Добавить нового пользователя"""
+    # Исправляем кодировку для кириллических символов
+    try:
+        if isinstance(name, str):
+            name_bytes = name.encode('latin-1')
+            name = name_bytes.decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    
+    try:
+        if isinstance(pin, str):
+            pin_bytes = pin.encode('latin-1')
+            pin = pin_bytes.decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    
+    # Проверяем права администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or not is_admin(dict(user)['name']):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Проверяем, что пользователь с таким именем не существует
+    users_data = load_users_from_file()
+    if name in users_data:
+        raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
+    
+    try:
+        add_user_to_system(name, pin)
+        return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении пользователя: {str(e)}")
+
+@app.post("/admin/delete_user/{user_id}")
+async def admin_delete_user(user_id: int, delete_user_id: int = Form(...)):
+    """Удалить пользователя"""
+    # Проверяем права администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or not is_admin(dict(user)['name']):
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Нельзя удалить самого себя
+    if user_id == delete_user_id:
+        raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
+    
+    # Нельзя удалить администратора
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (delete_user_id,))
+    delete_user = cursor.fetchone()
+    conn.close()
+    
+    if delete_user and is_admin(dict(delete_user)['name']):
+        raise HTTPException(status_code=400, detail="Нельзя удалить администратора")
+    
+    try:
+        success = delete_user_from_system(delete_user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя: {str(e)}")
 
 @app.get("/logo")
 async def get_logo():
