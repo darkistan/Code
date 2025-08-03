@@ -516,6 +516,31 @@ async def dashboard(request: Request, user_id: int):
 
 @app.post("/create_document/{user_id}")
 async def create_new_document(user_id: int, doc_type: str = Form(...), comment: str = Form(default="")):
+    # Преобразуем латинские типы в кириллические
+    doc_type_map = {
+        'inventory': 'Инвентаризация',
+        'receipt': 'Приход'
+    }
+    
+    if doc_type in doc_type_map:
+        doc_type = doc_type_map[doc_type]
+    else:
+        # Если пришел кириллический тип, исправляем кодировку
+        try:
+            if isinstance(doc_type, str):
+                doc_type_bytes = doc_type.encode('latin-1')
+                doc_type = doc_type_bytes.decode('utf-8')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    
+    # Исправляем кодировку комментария
+    try:
+        if isinstance(comment, str):
+            comment_bytes = comment.encode('latin-1')
+            comment = comment_bytes.decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    
     if doc_type not in ['Инвентаризация', 'Приход']:
         raise HTTPException(status_code=400, detail="Неверный тип документа")
     
