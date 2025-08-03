@@ -840,7 +840,7 @@ async def admin_view_document(request: Request, user_id: int, document_id: int):
     # Проверяем права администратора
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    cursor.execute("SELECT id, name FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
     
     if not user or not is_admin(user['name']):
