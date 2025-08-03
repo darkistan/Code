@@ -7,7 +7,7 @@ from typing import Optional, List
 from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Response
 from pydantic import BaseModel
 
 # Создание директорий если их нет
@@ -1026,15 +1026,30 @@ async def download_file(filename: str):
     else:
         raise HTTPException(status_code=404, detail="Файл не найден")
 
-@app.get("/static/icon-{size}.png")
-async def get_icon(size: str):
+@app.get("/pwa-icon")
+async def get_pwa_icon(size: int = 144):
     """Генерирует простую иконку для PWA"""
-    from fastapi.responses import Response
+    # Создаем простую SVG иконку с логотипом компании
+    svg_icon = f'''<svg width="{size}" height="{size}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="8" fill="#0d6efd"/>
+        <rect x="8" y="12" width="32" height="24" rx="2" stroke="white" stroke-width="2" fill="none"/>
+        <rect x="10" y="14" width="28" height="20" rx="1" fill="white" fill-opacity="0.2"/>
+        <g transform="translate(12, 18)">
+            <rect x="0" y="0" width="1" height="8" fill="white"/>
+            <rect x="2" y="0" width="2" height="8" fill="white"/>
+            <rect x="5" y="0" width="1" height="8" fill="white"/>
+            <rect x="7" y="0" width="3" height="8" fill="white"/>
+            <rect x="11" y="0" width="1" height="8" fill="white"/>
+            <rect x="13" y="0" width="2" height="8" fill="white"/>
+            <rect x="16" y="0" width="1" height="8" fill="white"/>
+            <rect x="18" y="0" width="2" height="8" fill="white"/>
+            <rect x="21" y="0" width="1" height="8" fill="white"/>
+            <rect x="23" y="0" width="1" height="8" fill="white"/>
+        </g>
+        <path d="M16 30L20 34L32 22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>'''
     
-    # Простая PNG иконка (1x1 пиксель синего цвета в base64)
-    png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\nIDATx\x9cc```\x00\x00\x00\x04\x00\x01\xddcc\xdb\x00\x00\x00\x00IEND\xaeB`\x82'
-    
-    return Response(content=png_data, media_type="image/png")
+    return Response(content=svg_icon, media_type="image/svg+xml")
 
 if __name__ == "__main__":
     import uvicorn
