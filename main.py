@@ -362,6 +362,38 @@ def get_document_barcodes(document_id: int) -> List[dict]:
     
     return [dict(barcode) for barcode in barcodes]
 
+def get_document_barcodes_grouped(document_id: int) -> List[dict]:
+    """Получает штрихкоды документа, группируя одинаковые"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT barcode, COUNT(*) as count, 
+               MIN(created_at) as first_scan, 
+               MAX(created_at) as last_scan,
+               GROUP_CONCAT(id) as ids
+        FROM barcodes 
+        WHERE document_id = ? 
+        GROUP BY barcode 
+        ORDER BY first_scan DESC
+    """, (document_id,))
+    
+    grouped_barcodes = cursor.fetchall()
+    conn.close()
+    
+    result = []
+    for row in grouped_barcodes:
+        result.append({
+            'barcode': row[0],
+            'count': row[1],
+            'first_scan': row[2],
+            'last_scan': row[3],
+            'ids': row[4].split(',') if row[4] else [],
+            'is_duplicate': row[1] > 1
+        })
+    
+    return result
+
 def add_barcode(document_id: int, barcode: str):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -605,11 +637,16 @@ async def dashboard(request: Request, user_id: int):
     
     conn.close()
     
+    current_lang = get_user_language(request)
+    locale = load_locale(current_lang)
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user_dict,
         "active_doc": active_doc,
-        "documents": user_documents
+        "documents": user_documents,
+        "locale": locale,
+        "current_lang": current_lang
     })
 
 @app.post("/create_document/{user_id}")
@@ -685,16 +722,21 @@ async def scan_page(request: Request, user_id: int):
         conn.close()
         return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
     
-    # Получаем штрихкоды
-    barcodes = get_document_barcodes(active_doc['id'])
+    # Получаем штрихкоды (группированные)
+    barcodes = get_document_barcodes_grouped(active_doc['id'])
     
     conn.close()
+    
+    current_lang = get_user_language(request)
+    locale = load_locale(current_lang)
     
     return templates.TemplateResponse("scan.html", {
         "request": request,
         "user": dict(user),
         "document": active_doc,
-        "barcodes": barcodes
+        "barcodes": barcodes,
+        "locale": locale,
+        "current_lang": current_lang
     })
 
 @app.post("/add_barcode/{user_id}")
@@ -731,7 +773,23 @@ async def add_new_barcode(user_id: int, barcode: str = Form(...)):
 
 @app.post("/delete_barcode/{user_id}")
 async def remove_barcode(user_id: int, barcode_id: int = Form(...)):
-    delete_barcode(barcode_id)
+    # Получаем информацию о штрихкоде
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT barcode, document_id FROM barcodes WHERE id = ?", (barcode_id,))
+    barcode_info = cursor.fetchone()
+    
+    if barcode_info:
+        barcode_value = barcode_info[0]
+        document_id = barcode_info[1]
+        
+        # Удаляем все штрихкоды с таким же значением в этом документе
+        cursor.execute("DELETE FROM barcodes WHERE barcode = ? AND document_id = ?", 
+                      (barcode_value, document_id))
+        conn.commit()
+    
+    conn.close()
     return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
 
 @app.post("/close_document/{user_id}")
@@ -821,6 +879,9 @@ async def admin_panel(request: Request, user_id: int):
     
     conn.close()
     
+    current_lang = get_user_language(request)
+    locale = load_locale(current_lang)
+    
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "user": dict(user),
@@ -831,7 +892,9 @@ async def admin_panel(request: Request, user_id: int):
             "total_documents": total_documents,
             "active_documents": active_documents,
             "total_barcodes": total_barcodes
-        }
+        },
+        "locale": locale,
+        "current_lang": current_lang
     })
 
 @app.post("/admin/delete_document/{user_id}")
