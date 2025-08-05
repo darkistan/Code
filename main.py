@@ -362,34 +362,50 @@ def get_document_barcodes(document_id: int) -> List[dict]:
     
     return [dict(barcode) for barcode in barcodes]
 
-def get_document_barcodes_grouped(document_id: int) -> List[dict]:
-    """Получает штрихкоды документа, группируя одинаковые"""
+def get_document_barcodes_sorted(document_id: int) -> List[dict]:
+    """Получает штрихкоды документа, отсортированные по значению для группировки одинаковых рядом"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Получаем все штрихкоды, отсортированные по значению, затем по времени
     cursor.execute("""
-        SELECT barcode, COUNT(*) as count, 
-               MIN(created_at) as first_scan, 
-               MAX(created_at) as last_scan,
-               GROUP_CONCAT(id) as ids
+        SELECT id, barcode, created_at
         FROM barcodes 
         WHERE document_id = ? 
-        GROUP BY barcode 
-        ORDER BY first_scan DESC
+        ORDER BY barcode, created_at DESC
     """, (document_id,))
     
-    grouped_barcodes = cursor.fetchall()
+    all_barcodes = cursor.fetchall()
+    
+    # Подсчитываем количество каждого штрихкода
+    cursor.execute("""
+        SELECT barcode, COUNT(*) as count
+        FROM barcodes 
+        WHERE document_id = ? 
+        GROUP BY barcode
+    """, (document_id,))
+    
+    barcode_counts = dict(cursor.fetchall())
     conn.close()
     
     result = []
-    for row in grouped_barcodes:
+    barcode_sequence = {}  # Для подсчета номера среди одинаковых
+    
+    for row in all_barcodes:
+        barcode_value = row[1]
+        
+        # Увеличиваем счетчик для этого штрихкода
+        if barcode_value not in barcode_sequence:
+            barcode_sequence[barcode_value] = 0
+        barcode_sequence[barcode_value] += 1
+        
         result.append({
-            'barcode': row[0],
-            'count': row[1],
-            'first_scan': row[2],
-            'last_scan': row[3],
-            'ids': row[4].split(',') if row[4] else [],
-            'is_duplicate': row[1] > 1
+            'id': row[0],
+            'barcode': barcode_value,
+            'created_at': row[2],
+            'is_duplicate': barcode_counts[barcode_value] > 1,
+            'total_count': barcode_counts[barcode_value],
+            'sequence_number': barcode_sequence[barcode_value]
         })
     
     return result
@@ -722,8 +738,8 @@ async def scan_page(request: Request, user_id: int):
         conn.close()
         return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
     
-    # Получаем штрихкоды (группированные)
-    barcodes = get_document_barcodes_grouped(active_doc['id'])
+    # Получаем штрихкоды (отсортированные для группировки рядом)
+    barcodes = get_document_barcodes_sorted(active_doc['id'])
     
     conn.close()
     
@@ -757,23 +773,8 @@ async def add_new_barcode(user_id: int, barcode: str = Form(...)):
 
 @app.post("/delete_barcode/{user_id}")
 async def remove_barcode(user_id: int, barcode_id: int = Form(...)):
-    # Получаем информацию о штрихкоде
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT barcode, document_id FROM barcodes WHERE id = ?", (barcode_id,))
-    barcode_info = cursor.fetchone()
-    
-    if barcode_info:
-        barcode_value = barcode_info[0]
-        document_id = barcode_info[1]
-        
-        # Удаляем все штрихкоды с таким же значением в этом документе
-        cursor.execute("DELETE FROM barcodes WHERE barcode = ? AND document_id = ?", 
-                      (barcode_value, document_id))
-        conn.commit()
-    
-    conn.close()
+    # Удаляем только конкретный штрихкод по ID
+    delete_barcode(barcode_id)
     return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
 
 @app.post("/close_document/{user_id}")
@@ -939,8 +940,8 @@ async def admin_view_document(request: Request, user_id: int, document_id: int):
         conn.close()
         raise HTTPException(status_code=404, detail="Документ не найден")
     
-    # Получаем штрихкоды документа (группированные)
-    barcodes = get_document_barcodes_grouped(document_id)
+    # Получаем штрихкоды документа (отсортированные для группировки рядом)
+    barcodes = get_document_barcodes_sorted(document_id)
     
     conn.close()
     

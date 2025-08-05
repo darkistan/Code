@@ -98,20 +98,13 @@
                                         {% if barcode.is_duplicate %}
                                             <span class="badge bg-warning text-dark">
                                                 <i class="bi bi-exclamation-triangle me-1"></i>
-                                                × {{ barcode.count }}
+                                                {{ barcode.sequence_number }} из {{ barcode.total_count }}
                                             </span>
                                         {% endif %}
                                     </div>
                                     <small class="text-muted">
                                         <i class="bi bi-clock me-1"></i>
-                                        {% if barcode.is_duplicate %}
-                                            Первое: {{ barcode.first_scan[:19].replace('T', ' ') }}
-                                            {% if barcode.first_scan != barcode.last_scan %}
-                                                | Последнее: {{ barcode.last_scan[:19].replace('T', ' ') }}
-                                            {% endif %}
-                                        {% else %}
-                                            {{ barcode.first_scan[:19].replace('T', ' ') }}
-                                        {% endif %}
+                                        {{ barcode.created_at[:19].replace('T', ' ') }}
                                     </small>
                                 </div>
                                 <div class="text-muted small">

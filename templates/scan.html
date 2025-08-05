@@ -138,34 +138,20 @@
                                 {% if barcode.is_duplicate %}
                                     <span class="badge bg-warning text-dark">
                                         <i class="bi bi-exclamation-triangle me-1"></i>
-                                        × {{ barcode.count }}
+                                        {{ barcode.sequence_number }} из {{ barcode.total_count }}
                                     </span>
                                 {% endif %}
                             </div>
                             <small class="text-muted">
                                 <i class="bi bi-clock me-1"></i>
-                                {% if barcode.is_duplicate %}
-                                    Первое: {{ barcode.first_scan[:19].replace('T', ' ') }}
-                                    {% if barcode.first_scan != barcode.last_scan %}
-                                        | Последнее: {{ barcode.last_scan[:19].replace('T', ' ') }}
-                                    {% endif %}
-                                {% else %}
-                                    {{ barcode.first_scan[:19].replace('T', ' ') }}
-                                {% endif %}
+                                {{ barcode.created_at[:19].replace('T', ' ') }}
                             </small>
                         </div>
                         <div class="d-flex gap-1">
-                            {% if barcode.is_duplicate %}
-                                <button class="btn btn-outline-warning btn-sm" 
-                                        onclick="toggleDuplicateList('{{ loop.index }}')"
-                                        title="Показать все сканирования">
-                                    <i class="bi bi-list"></i>
-                                </button>
-                            {% endif %}
                             <form method="post" action="/delete_barcode/{{ user.id }}" class="d-inline">
-                                <input type="hidden" name="barcode_id" value="{{ barcode.ids[0] }}">
+                                <input type="hidden" name="barcode_id" value="{{ barcode.id }}">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" 
-                                        onclick="return confirm('Удалить {{ 'все сканирования этого' if barcode.is_duplicate else 'этот' }} штрихкод{{ 'а' if barcode.is_duplicate else '' }}?')"
+                                        onclick="return confirm('Удалить этот штрихкод?')"
                                         title="Удалить штрихкод">
                                     <i class="bi bi-trash"></i>
                                 </button>
