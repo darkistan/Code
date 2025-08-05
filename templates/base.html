@@ -262,9 +262,34 @@
                     <i class="bi bi-fullscreen" id="fullscreen-icon"></i>
                 </button>
                 
-                <button class="theme-toggle me-3" onclick="toggleTheme()" title="Переключить тему">
+                <button class="theme-toggle me-2" onclick="toggleTheme()" title="Переключить тему">
                     <i class="bi bi-sun-fill" id="theme-icon"></i>
                 </button>
+                
+                <!-- Переключатель языка -->
+                <div class="dropdown me-3">
+                    <button class="theme-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Язык">
+                        <i class="bi bi-translate"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <form method="post" action="/set_language" class="d-inline">
+                                <input type="hidden" name="language" value="ru">
+                                <button type="submit" class="dropdown-item">
+                                    🇷🇺 Русский
+                                </button>
+                            </form>
+                        </li>
+                        <li>
+                            <form method="post" action="/set_language" class="d-inline">
+                                <input type="hidden" name="language" value="uk">
+                                <button type="submit" class="dropdown-item">
+                                    🇺🇦 Українська
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
                 
                 {% if user %}
                 <div class="d-flex align-items-center text-white">

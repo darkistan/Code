@@ -86,8 +86,10 @@
                                         <div class="d-flex align-items-center mb-2">
                                             {% if doc.doc_type == 'Инвентаризация' %}
                                                 <i class="bi bi-clipboard-check text-primary me-2"></i>
-                                            {% else %}
+                                            {% elif doc.doc_type == 'Приход' %}
                                                 <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                                            {% else %}
+                                                <i class="bi bi-box-arrow-up text-danger me-2"></i>
                                             {% endif %}
                                             <h6 class="mb-0 me-3">{{ doc.doc_type }}</h6>
                                             {% if doc.status == 'active' %}

@@ -9,8 +9,10 @@
             <h1 class="h3">
                 {% if document.doc_type == 'Инвентаризация' %}
                     <i class="bi bi-clipboard-check text-primary me-2"></i>
-                {% else %}
+                {% elif document.doc_type == 'Приход' %}
                     <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                {% else %}
+                    <i class="bi bi-box-arrow-up text-danger me-2"></i>
                 {% endif %}
                 {{ document.doc_type }}
             </h1>
@@ -170,11 +172,15 @@
 <!-- Комментарий к документу -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card border-info">
-            <div class="card-body py-2">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-chat-left-text text-info me-2"></i>
-                    <small class="text-muted mb-0">{{ document.comment }}</small>
+        <div class="alert alert-info border-0 shadow-sm">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-chat-left-text fs-4 text-info me-3 mt-1"></i>
+                <div>
+                    <h6 class="alert-heading mb-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Комментарий к документу
+                    </h6>
+                    <p class="mb-0 fw-medium">{{ document.comment }}</p>
                 </div>
             </div>
         </div>

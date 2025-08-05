@@ -4,6 +4,7 @@ import os
 import shutil
 from datetime import datetime
 from typing import Optional, List
+import json
 from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +21,31 @@ app = FastAPI(title="Мобильная инвентаризация")
 # Настройка шаблонов и статических файлов
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Функции локализации
+def load_locale(lang: str = 'ru') -> dict:
+    """Загружает локализацию для указанного языка"""
+    try:
+        with open(f'static/locales/{lang}.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Если файл не найден, возвращаем русскую локализацию по умолчанию
+        with open('static/locales/ru.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+def get_user_language(request: Request) -> str:
+    """Получает язык пользователя из cookies или заголовков"""
+    # Сначала проверяем cookie
+    lang = request.cookies.get('language', None)
+    if lang in ['ru', 'uk']:
+        return lang
+    
+    # Если cookie нет, проверяем заголовок Accept-Language
+    accept_language = request.headers.get('accept-language', '')
+    if 'uk' in accept_language.lower():
+        return 'uk'
+    
+    return 'ru'  # По умолчанию русский
 
 # Модели данных
 class User(BaseModel):
@@ -501,9 +527,14 @@ def generate_csv(document_id: int) -> str:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     users = load_users_from_file()
+    current_lang = get_user_language(request)
+    locale = load_locale(current_lang)
+    
     return templates.TemplateResponse("login.html", {
         "request": request,
-        "users": list(users.keys())
+        "users": list(users.keys()),
+        "locale": locale,
+        "current_lang": current_lang
     })
 
 @app.post("/login")
@@ -586,7 +617,8 @@ async def create_new_document(user_id: int, doc_type: str = Form(...), comment: 
     # Преобразуем латинские типы в кириллические
     doc_type_map = {
         'inventory': 'Инвентаризация',
-        'receipt': 'Приход'
+        'receipt': 'Приход',
+        'expense': 'Расход'
     }
     
     if doc_type in doc_type_map:
@@ -608,7 +640,7 @@ async def create_new_document(user_id: int, doc_type: str = Form(...), comment: 
     except (UnicodeEncodeError, UnicodeDecodeError):
         pass
     
-    if doc_type not in ['Инвентаризация', 'Приход']:
+    if doc_type not in ['Инвентаризация', 'Приход', 'Расход']:
         raise HTTPException(status_code=400, detail="Неверный тип документа")
     
     # Проверяем, есть ли уже активный документ
@@ -1031,6 +1063,44 @@ async def get_pwa_icon(size: int = 144):
     """Генерирует простую иконку для PWA"""
     # Создаем простую SVG иконку с логотипом компании
     svg_icon = f'''<svg width="{size}" height="{size}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="8" fill="#0d6efd"/>
+        <rect x="8" y="12" width="32" height="24" rx="2" stroke="white" stroke-width="2" fill="none"/>
+        <rect x="10" y="14" width="28" height="20" rx="1" fill="white" fill-opacity="0.2"/>
+        <g transform="translate(12, 18)">
+            <rect x="0" y="0" width="1" height="8" fill="white"/>
+            <rect x="2" y="0" width="2" height="8" fill="white"/>
+            <rect x="5" y="0" width="1" height="8" fill="white"/>
+            <rect x="7" y="0" width="3" height="8" fill="white"/>
+            <rect x="11" y="0" width="1" height="8" fill="white"/>
+            <rect x="13" y="0" width="2" height="8" fill="white"/>
+            <rect x="16" y="0" width="1" height="8" fill="white"/>
+            <rect x="18" y="0" width="2" height="8" fill="white"/>
+            <rect x="21" y="0" width="1" height="8" fill="white"/>
+            <rect x="23" y="0" width="1" height="8" fill="white"/>
+        </g>
+        <path d="M16 30L20 34L32 22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>'''
+    
+    return Response(content=svg_icon, media_type="image/svg+xml")
+
+@app.post("/set_language")
+async def set_language(request: Request, language: str = Form(...)):
+    """Устанавливает язык пользователя"""
+    if language not in ['ru', 'uk']:
+        language = 'ru'
+    
+    # Получаем URL для редиректа из referer или переходим на главную
+    referer = request.headers.get('referer', '/')
+    
+    response = RedirectResponse(url=referer, status_code=303)
+    response.set_cookie(key="language", value=language, max_age=365*24*60*60)  # 1 год
+    return response
+
+@app.get("/favicon.ico")
+async def get_favicon():
+    """Возвращает favicon для браузера"""
+    # Используем ту же иконку, что и для PWA, но в размере 32x32
+    svg_icon = '''<svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect width="48" height="48" rx="8" fill="#0d6efd"/>
         <rect x="8" y="12" width="32" height="24" rx="2" stroke="white" stroke-width="2" fill="none"/>
         <rect x="10" y="14" width="28" height="20" rx="1" fill="white" fill-opacity="0.2"/>

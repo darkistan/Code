@@ -28,8 +28,10 @@
                 <h5 class="mb-0">
                     {% if document.doc_type == 'Инвентаризация' %}
                         <i class="bi bi-clipboard-check text-primary me-2"></i>
-                    {% else %}
+                    {% elif document.doc_type == 'Приход' %}
                         <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                    {% else %}
+                        <i class="bi bi-box-arrow-up text-danger me-2"></i>
                     {% endif %}
                     {{ document.doc_type }}
                     {% if document.status == 'active' %}
