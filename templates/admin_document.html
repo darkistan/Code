@@ -90,13 +90,28 @@
                 <div class="row">
                     {% for barcode in barcodes %}
                     <div class="col-12 mb-2">
-                        <div class="barcode-item p-3 rounded">
+                        <div class="barcode-item p-3 rounded {{ 'border-warning bg-warning bg-opacity-10' if barcode.is_duplicate else '' }}">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong class="font-monospace">{{ barcode.barcode }}</strong>
-                                    <small class="text-muted ms-3">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center">
+                                        <strong class="font-monospace me-2">{{ barcode.barcode }}</strong>
+                                        {% if barcode.is_duplicate %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                                × {{ barcode.count }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">
                                         <i class="bi bi-clock me-1"></i>
-                                        {{ barcode.created_at[:19].replace('T', ' ') }}
+                                        {% if barcode.is_duplicate %}
+                                            Первое: {{ barcode.first_scan[:19].replace('T', ' ') }}
+                                            {% if barcode.first_scan != barcode.last_scan %}
+                                                | Последнее: {{ barcode.last_scan[:19].replace('T', ' ') }}
+                                            {% endif %}
+                                        {% else %}
+                                            {{ barcode.first_scan[:19].replace('T', ' ') }}
+                                        {% endif %}
                                     </small>
                                 </div>
                                 <div class="text-muted small">

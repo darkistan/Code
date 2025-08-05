@@ -939,16 +939,21 @@ async def admin_view_document(request: Request, user_id: int, document_id: int):
         conn.close()
         raise HTTPException(status_code=404, detail="Документ не найден")
     
-    # Получаем штрихкоды документа
-    barcodes = get_document_barcodes(document_id)
+    # Получаем штрихкоды документа (группированные)
+    barcodes = get_document_barcodes_grouped(document_id)
     
     conn.close()
+    
+    current_lang = get_user_language(request)
+    locale = load_locale(current_lang)
     
     return templates.TemplateResponse("admin_document.html", {
         "request": request,
         "user": dict(user),
         "document": dict(document),
-        "barcodes": barcodes
+        "barcodes": barcodes,
+        "locale": locale,
+        "current_lang": current_lang
     })
 
 # Загрузка логотипа
