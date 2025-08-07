@@ -2,6 +2,73 @@
 
 {% block title %}Сканирование - {{ document.doc_type }}{% endblock %}
 
+{% block styles %}
+<style>
+/* Цветовые классы для парных штрихкодов */
+.barcode-duplicate-0 {
+    border-left: 4px solid #ff6b6b !important;
+    background-color: rgba(255, 107, 107, 0.1) !important;
+}
+
+.barcode-duplicate-1 {
+    border-left: 4px solid #4ecdc4 !important;
+    background-color: rgba(78, 205, 196, 0.1) !important;
+}
+
+.barcode-duplicate-2 {
+    border-left: 4px solid #45b7d1 !important;
+    background-color: rgba(69, 183, 209, 0.1) !important;
+}
+
+.barcode-duplicate-3 {
+    border-left: 4px solid #96ceb4 !important;
+    background-color: rgba(150, 206, 180, 0.1) !important;
+}
+
+/* Анимация для новых штрихкодов */
+@keyframes highlightNew {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.barcode-item.new-scan {
+    animation: highlightNew 0.5s ease-in-out;
+}
+
+/* Улучшенные стили для дублированных штрихкодов */
+.barcode-item.duplicate {
+    position: relative;
+}
+
+.barcode-item.duplicate::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 2px;
+}
+
+/* Цветовые индикаторы для парных штрихкодов */
+.color-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.color-indicator-0 { background-color: #ff6b6b; }
+.color-indicator-1 { background-color: #4ecdc4; }
+.color-indicator-2 { background-color: #45b7d1; }
+.color-indicator-3 { background-color: #96ceb4; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -131,13 +198,19 @@
             <div class="card-body p-0">
                 <div class="list-group list-group-flush">
                     {% for barcode in barcodes %}
-                    <div class="list-group-item barcode-item d-flex justify-content-between align-items-center {{ 'border-warning bg-warning bg-opacity-10' if barcode.is_duplicate else '' }}">
+                    <div class="list-group-item barcode-item d-flex justify-content-between align-items-center 
+                                {% if barcode.is_duplicate %}
+                                    barcode-duplicate-{{ barcode.color_index }} duplicate
+                                {% endif %}">
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center">
+                                {% if barcode.is_duplicate %}
+                                    <span class="color-indicator color-indicator-{{ barcode.color_index }}"></span>
+                                {% endif %}
                                 <h6 class="mb-1 font-monospace me-2">{{ barcode.barcode }}</h6>
                                 {% if barcode.is_duplicate %}
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <span class="badge bg-secondary text-white">
+                                        <i class="bi bi-layers me-1"></i>
                                         {{ barcode.sequence_number }} из {{ barcode.total_count }}
                                     </span>
                                 {% endif %}
@@ -377,5 +450,26 @@ function toggleDuplicateList(index) {
     // о каждом сканировании дублированного штрихкода
     console.log('Показать детали для штрихкода #' + index);
 }
+
+// Функция для анимации нового штрихкода
+function highlightNewBarcode() {
+    const barcodeItems = document.querySelectorAll('.barcode-item');
+    if (barcodeItems.length > 0) {
+        const lastItem = barcodeItems[barcodeItems.length - 1];
+        lastItem.classList.add('new-scan');
+        setTimeout(() => {
+            lastItem.classList.remove('new-scan');
+        }, 500);
+    }
+}
+
+// Вызываем анимацию при загрузке страницы (если есть новые штрихкоды)
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем, есть ли новые штрихкоды (по URL параметру или другим способом)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('new_scan') === 'true') {
+        setTimeout(highlightNewBarcode, 100);
+    }
+});
 </script>
 {% endblock %}

@@ -2,6 +2,47 @@
 
 {% block title %}Просмотр документа - Панель администратора{% endblock %}
 
+{% block styles %}
+<style>
+/* Цветовые классы для парных штрихкодов */
+.barcode-duplicate-0 {
+    border-left: 4px solid #ff6b6b !important;
+    background-color: rgba(255, 107, 107, 0.1) !important;
+}
+
+.barcode-duplicate-1 {
+    border-left: 4px solid #4ecdc4 !important;
+    background-color: rgba(78, 205, 196, 0.1) !important;
+}
+
+.barcode-duplicate-2 {
+    border-left: 4px solid #45b7d1 !important;
+    background-color: rgba(69, 183, 209, 0.1) !important;
+}
+
+.barcode-duplicate-3 {
+    border-left: 4px solid #96ceb4 !important;
+    background-color: rgba(150, 206, 180, 0.1) !important;
+}
+
+/* Цветовые индикаторы для парных штрихкодов */
+.color-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.color-indicator-0 { background-color: #ff6b6b; }
+.color-indicator-1 { background-color: #4ecdc4; }
+.color-indicator-2 { background-color: #45b7d1; }
+.color-indicator-3 { background-color: #96ceb4; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -90,14 +131,20 @@
                 <div class="row">
                     {% for barcode in barcodes %}
                     <div class="col-12 mb-2">
-                        <div class="barcode-item p-3 rounded {{ 'border-warning bg-warning bg-opacity-10' if barcode.is_duplicate else '' }}">
+                        <div class="barcode-item p-3 rounded 
+                                    {% if barcode.is_duplicate %}
+                                        barcode-duplicate-{{ barcode.color_index }}
+                                    {% endif %}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center">
+                                        {% if barcode.is_duplicate %}
+                                            <span class="color-indicator color-indicator-{{ barcode.color_index }}"></span>
+                                        {% endif %}
                                         <strong class="font-monospace me-2">{{ barcode.barcode }}</strong>
                                         {% if barcode.is_duplicate %}
-                                            <span class="badge bg-warning text-dark">
-                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                            <span class="badge bg-secondary text-white">
+                                                <i class="bi bi-layers me-1"></i>
                                                 {{ barcode.sequence_number }} из {{ barcode.total_count }}
                                             </span>
                                         {% endif %}

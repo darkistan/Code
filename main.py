@@ -390,6 +390,7 @@ def get_document_barcodes_sorted(document_id: int) -> List[dict]:
     
     result = []
     barcode_sequence = {}  # Для подсчета номера среди одинаковых
+    barcode_color_index = {}  # Для определения цвета для каждого штрихкода
     
     for row in all_barcodes:
         barcode_value = row[1]
@@ -397,7 +398,14 @@ def get_document_barcodes_sorted(document_id: int) -> List[dict]:
         # Увеличиваем счетчик для этого штрихкода
         if barcode_value not in barcode_sequence:
             barcode_sequence[barcode_value] = 0
+            barcode_color_index[barcode_value] = 0
         barcode_sequence[barcode_value] += 1
+        
+        # Определяем цветовой индекс для парных штрихкодов
+        color_index = 0
+        if barcode_counts[barcode_value] > 1:
+            # Для парных штрихкодов используем чередующиеся цвета
+            color_index = (barcode_sequence[barcode_value] - 1) % 4  # 4 цвета: 0, 1, 2, 3
         
         result.append({
             'id': row[0],
@@ -405,7 +413,8 @@ def get_document_barcodes_sorted(document_id: int) -> List[dict]:
             'created_at': row[2],
             'is_duplicate': barcode_counts[barcode_value] > 1,
             'total_count': barcode_counts[barcode_value],
-            'sequence_number': barcode_sequence[barcode_value]
+            'sequence_number': barcode_sequence[barcode_value],
+            'color_index': color_index
         })
     
     return result
@@ -559,13 +568,14 @@ def generate_csv(document_id: int) -> str:
     # Создаем CSV файл
     with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Пользователь', 'Дата', 'Тип документа', 'Штрихкод'])
+        writer.writerow(['Пользователь', 'Дата', 'Тип документа', 'Комментарий', 'Штрихкод'])
         
         for barcode in barcodes:
             writer.writerow([
                 document['user_name'],
                 document['created_at'],
                 document['doc_type'],
+                document['comment'],
                 barcode['barcode']
             ])
     
@@ -769,7 +779,7 @@ async def add_new_barcode(user_id: int, barcode: str = Form(...)):
     # Добавляем штрихкод без проверки на дубликаты
     add_barcode(active_doc['id'], barcode_value)
     
-    return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
+    return RedirectResponse(url=f"/scan/{user_id}?new_scan=true", status_code=303)
 
 @app.post("/delete_barcode/{user_id}")
 async def remove_barcode(user_id: int, barcode_id: int = Form(...)):
