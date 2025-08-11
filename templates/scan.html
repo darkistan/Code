@@ -66,6 +66,114 @@
 .color-indicator-1 { background-color: #4ecdc4; }
 .color-indicator-2 { background-color: #45b7d1; }
 .color-indicator-3 { background-color: #96ceb4; }
+
+/* Стили для виртуальной клавиатуры */
+.virtual-keyboard {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #f8f9fa;
+    border-top: 2px solid #dee2e6;
+    padding: 10px;
+    z-index: 1050;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+.virtual-keyboard.show {
+    transform: translateY(0);
+}
+
+.keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.keyboard-key {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    min-width: 40px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.keyboard-key:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.keyboard-key:active {
+    background: #dee2e6;
+    transform: translateY(0);
+}
+
+.keyboard-key.special {
+    background: #6c757d;
+    color: white;
+    min-width: 60px;
+}
+
+.keyboard-key.special:hover {
+    background: #5a6268;
+}
+
+.keyboard-key.space {
+    min-width: 200px;
+}
+
+.keyboard-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.keyboard-toggle:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+/* Стили для индикатора режима ввода */
+.input-mode-indicator {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: white;
+    font-weight: bold;
+}
+
+.input-mode-scanner {
+    background: #28a745;
+}
+
+.input-mode-manual {
+    background: #ffc107;
+    color: #212529;
+}
+
+.input-mode-hidden {
+    display: none;
+}
 </style>
 {% endblock %}
 
@@ -122,14 +230,24 @@
                                        name="barcode" 
                                        placeholder="Отсканируйте или введите штрихкод"
                                        required
-                                       autofocus>
+                                       autofocus
+                                       lang="en"
+                                       inputmode="text"
+                                       autocomplete="off"
+                                       spellcheck="false">
                                 <div id="scan-feedback" class="position-absolute top-50 end-0 translate-middle-y me-3" style="display: none;">
                                     <i class="bi bi-check-circle text-success fs-4"></i>
                                 </div>
+                                <div id="input-mode-indicator" class="input-mode-indicator input-mode-hidden">
+                                    <i class="bi bi-upc-scan"></i>
+                                </div>
+                                <button type="button" class="keyboard-toggle" id="keyboard-toggle" title="Показать виртуальную клавиатуру">
+                                    <i class="bi bi-keyboard"></i>
+                                </button>
                             </div>
                             <div class="form-text">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Поместите курсор в поле и отсканируйте штрихкод сканером Eyoyo
+                                Поместите курсор в поле и отсканируйте штрихкод сканером Eyoyo или используйте виртуальную клавиатуру
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -142,6 +260,65 @@
                 </form>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Виртуальная клавиатура -->
+<div class="virtual-keyboard" id="virtual-keyboard">
+    <div class="keyboard-row">
+        <button class="keyboard-key" data-key="1">1</button>
+        <button class="keyboard-key" data-key="2">2</button>
+        <button class="keyboard-key" data-key="3">3</button>
+        <button class="keyboard-key" data-key="4">4</button>
+        <button class="keyboard-key" data-key="5">5</button>
+        <button class="keyboard-key" data-key="6">6</button>
+        <button class="keyboard-key" data-key="7">7</button>
+        <button class="keyboard-key" data-key="8">8</button>
+        <button class="keyboard-key" data-key="9">9</button>
+        <button class="keyboard-key" data-key="0">0</button>
+    </div>
+    <div class="keyboard-row">
+        <button class="keyboard-key" data-key="q">Q</button>
+        <button class="keyboard-key" data-key="w">W</button>
+        <button class="keyboard-key" data-key="e">E</button>
+        <button class="keyboard-key" data-key="r">R</button>
+        <button class="keyboard-key" data-key="t">T</button>
+        <button class="keyboard-key" data-key="y">Y</button>
+        <button class="keyboard-key" data-key="u">U</button>
+        <button class="keyboard-key" data-key="i">I</button>
+        <button class="keyboard-key" data-key="o">O</button>
+        <button class="keyboard-key" data-key="p">P</button>
+    </div>
+    <div class="keyboard-row">
+        <button class="keyboard-key" data-key="a">A</button>
+        <button class="keyboard-key" data-key="s">S</button>
+        <button class="keyboard-key" data-key="d">D</button>
+        <button class="keyboard-key" data-key="f">F</button>
+        <button class="keyboard-key" data-key="g">G</button>
+        <button class="keyboard-key" data-key="h">H</button>
+        <button class="keyboard-key" data-key="j">J</button>
+        <button class="keyboard-key" data-key="k">K</button>
+        <button class="keyboard-key" data-key="l">L</button>
+    </div>
+    <div class="keyboard-row">
+        <button class="keyboard-key" data-key="z">Z</button>
+        <button class="keyboard-key" data-key="x">X</button>
+        <button class="keyboard-key" data-key="c">C</button>
+        <button class="keyboard-key" data-key="v">V</button>
+        <button class="keyboard-key" data-key="b">B</button>
+        <button class="keyboard-key" data-key="n">N</button>
+        <button class="keyboard-key" data-key="m">M</button>
+        <button class="keyboard-key special" data-key="backspace">
+            <i class="bi bi-backspace"></i>
+        </button>
+    </div>
+    <div class="keyboard-row">
+        <button class="keyboard-key special" data-key="clear">Очистить</button>
+        <button class="keyboard-key space" data-key=" ">Пробел</button>
+        <button class="keyboard-key special" data-key="enter">Ввод</button>
+        <button class="keyboard-key special" data-key="close">
+            <i class="bi bi-x-lg"></i>
+        </button>
     </div>
 </div>
 
@@ -289,6 +466,7 @@ let isSubmitting = false;
 let autoSubmitTimeout = null;
 let lastInputTime = 0;
 let isManualInput = false;
+let keyboardVisible = false;
 
 // Функция для отправки формы с защитой от дублирования
 function submitForm() {
@@ -340,6 +518,79 @@ function showScanFeedback() {
     }
 }
 
+// Функции для виртуальной клавиатуры
+function toggleKeyboard() {
+    const keyboard = document.getElementById('virtual-keyboard');
+    const toggleBtn = document.getElementById('keyboard-toggle');
+    
+    if (keyboardVisible) {
+        keyboard.classList.remove('show');
+        toggleBtn.innerHTML = '<i class="bi bi-keyboard"></i>';
+        toggleBtn.title = 'Показать виртуальную клавиатуру';
+    } else {
+        keyboard.classList.add('show');
+        toggleBtn.innerHTML = '<i class="bi bi-keyboard-fill"></i>';
+        toggleBtn.title = 'Скрыть виртуальную клавиатуру';
+    }
+    
+    keyboardVisible = !keyboardVisible;
+}
+
+function handleKeyboardKey(key) {
+    const barcodeInput = document.getElementById('barcode');
+    const cursorPos = barcodeInput.selectionStart;
+    const value = barcodeInput.value;
+    
+    switch(key) {
+        case 'backspace':
+            if (cursorPos > 0) {
+                barcodeInput.value = value.slice(0, cursorPos - 1) + value.slice(cursorPos);
+                barcodeInput.setSelectionRange(cursorPos - 1, cursorPos - 1);
+            }
+            break;
+        case 'clear':
+            barcodeInput.value = '';
+            barcodeInput.focus();
+            break;
+        case 'enter':
+            submitForm();
+            break;
+        case 'close':
+            toggleKeyboard();
+            break;
+        default:
+            barcodeInput.value = value.slice(0, cursorPos) + key + value.slice(cursorPos);
+            barcodeInput.setSelectionRange(cursorPos + 1, cursorPos + 1);
+            break;
+    }
+    
+    // Обновляем позицию курсора
+    barcodeInput.focus();
+}
+
+// Функция для обновления индикатора режима ввода
+function updateInputModeIndicator() {
+    const indicator = document.getElementById('input-mode-indicator');
+    const barcodeInput = document.getElementById('barcode');
+    
+    if (isManualInput) {
+        indicator.className = 'input-mode-indicator input-mode-manual';
+        indicator.innerHTML = '<i class="bi bi-keyboard"></i>';
+        indicator.title = 'Ручной ввод';
+    } else {
+        indicator.className = 'input-mode-indicator input-mode-scanner';
+        indicator.innerHTML = '<i class="bi bi-upc-scan"></i>';
+        indicator.title = 'Сканер';
+    }
+    
+    // Показываем индикатор только если поле в фокусе
+    if (document.activeElement === barcodeInput) {
+        indicator.classList.remove('input-mode-hidden');
+    } else {
+        indicator.classList.add('input-mode-hidden');
+    }
+}
+
 // Определение типа ввода (сканер vs ручной)
 document.getElementById('barcode').addEventListener('input', function(e) {
     const currentTime = Date.now();
@@ -362,6 +613,9 @@ document.getElementById('barcode').addEventListener('input', function(e) {
     
     lastInputTime = currentTime;
     
+    // Обновляем индикатор режима ввода
+    updateInputModeIndicator();
+    
     // Автоотправка ТОЛЬКО для сканера
     if (value.length >= 8 && !isManualInput) {
         autoSubmitTimeout = setTimeout(() => {
@@ -374,6 +628,7 @@ document.getElementById('barcode').addEventListener('input', function(e) {
 document.getElementById('barcode').addEventListener('keydown', function(e) {
     // Любое нажатие клавиши = ручной ввод
     isManualInput = true;
+    updateInputModeIndicator();
     
     // Очищаем автоотправку при ручном вводе
     if (autoSubmitTimeout) {
@@ -405,23 +660,50 @@ document.getElementById('scanForm').addEventListener('submit', function(e) {
     }
 });
 
+// Обработчики для виртуальной клавиатуры
+document.getElementById('keyboard-toggle').addEventListener('click', function(e) {
+    e.preventDefault();
+    toggleKeyboard();
+});
+
+// Обработчики для клавиш виртуальной клавиатуры
+document.querySelectorAll('.keyboard-key').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const key = this.getAttribute('data-key');
+        handleKeyboardKey(key);
+        
+        // При нажатии любой клавиши на виртуальной клавиатуре считаем это ручным вводом
+        isManualInput = true;
+        updateInputModeIndicator();
+        
+        // Очищаем автоотправку при использовании виртуальной клавиатуры
+        if (autoSubmitTimeout) {
+            clearTimeout(autoSubmitTimeout);
+            autoSubmitTimeout = null;
+        }
+    });
+});
+
 // Фокус на поле ввода после загрузки страницы
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('barcode').focus();
     isSubmitting = false; // Сбрасываем флаг после загрузки
     isManualInput = false; // Сбрасываем флаг ручного ввода
     lastInputTime = 0;
+    updateInputModeIndicator();
 });
 
 // Возврат фокуса на поле ввода при клике в любом месте
 document.addEventListener('click', function(e) {
     // Не перехватываем фокус если кликнули по кнопке или форме
-    if (!e.target.closest('button') && !e.target.closest('form')) {
+    if (!e.target.closest('button') && !e.target.closest('form') && !e.target.closest('.virtual-keyboard')) {
         const barcodeInput = document.getElementById('barcode');
         barcodeInput.focus();
         // Сбрасываем флаги при получении фокуса
         isManualInput = false;
         lastInputTime = 0;
+        updateInputModeIndicator();
     }
 });
 
@@ -429,6 +711,7 @@ document.addEventListener('click', function(e) {
 document.getElementById('barcode').addEventListener('focus', function() {
     isManualInput = false;
     lastInputTime = 0;
+    updateInputModeIndicator();
     if (autoSubmitTimeout) {
         clearTimeout(autoSubmitTimeout);
         autoSubmitTimeout = null;
@@ -442,6 +725,14 @@ window.addEventListener('pageshow', function() {
     lastInputTime = 0;
     document.getElementById('barcode').value = '';
     document.getElementById('barcode').focus();
+    updateInputModeIndicator();
+});
+
+// Скрытие клавиатуры при клике вне её области
+document.addEventListener('click', function(e) {
+    if (keyboardVisible && !e.target.closest('.virtual-keyboard') && !e.target.closest('#keyboard-toggle')) {
+        toggleKeyboard();
+    }
 });
 
 // Функция для показа/скрытия деталей дублированных штрихкодов
