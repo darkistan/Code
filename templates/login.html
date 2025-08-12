@@ -2,73 +2,276 @@
 
 {% block title %}Вход - Мобильная инвентаризация{% endblock %}
 
+{% block styles %}
+<style>
+/* Дополнительные стили для мобильной оптимизации */
+@media (max-width: 768px) {
+    .login-container {
+        padding: 1rem;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+    }
+    
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    .login-card .card-body {
+        padding: 2rem 1.5rem;
+    }
+    
+    .login-logo {
+        width: 100px;
+        height: 100px;
+        border-radius: 20px;
+    }
+    
+    .login-title {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .login-subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-label {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    
+    .form-select-lg, .form-control-lg {
+        font-size: 1.1rem;
+        padding: 1rem;
+        min-height: 60px;
+        border-radius: 12px;
+    }
+    
+    .btn-lg {
+        font-size: 1.1rem;
+        padding: 1rem;
+        min-height: 60px;
+        border-radius: 12px;
+    }
+    
+    .login-info {
+        font-size: 0.8rem;
+        margin-top: 2rem;
+    }
+}
+
+/* Специальная адаптация для разрешения 2340x1080 */
+@media (min-width: 400px) and (max-width: 500px) {
+    .login-container {
+        padding: 1.5rem;
+    }
+    
+    .login-card .card-body {
+        padding: 2.5rem 2rem;
+    }
+    
+    .login-logo {
+        width: 120px;
+        height: 120px;
+        border-radius: 24px;
+    }
+    
+    .login-title {
+        font-size: 2rem;
+    }
+    
+    .login-subtitle {
+        font-size: 1rem;
+    }
+    
+    .form-select-lg, .form-control-lg {
+        font-size: 1.2rem;
+        padding: 1.2rem;
+        min-height: 70px;
+    }
+    
+    .btn-lg {
+        font-size: 1.2rem;
+        padding: 1.2rem;
+    }
+}
+
+/* Стили для кнопки выхода */
+.btn-outline-danger {
+    border-width: 2px;
+    font-weight: 600;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+        min-height: 70px;
+    }
+}
+
+/* Улучшения для touch-устройств */
+@media (hover: none) and (pointer: coarse) {
+    .form-select-lg, .form-control-lg {
+        min-height: 60px;
+    }
+    
+    .btn-lg {
+        min-height: 60px;
+    }
+    
+    .form-select, .form-control {
+        min-height: 48px;
+    }
+}
+
+/* Анимации для улучшения UX */
+.login-card {
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-logo {
+    animation: fadeInScale 0.6s ease-out 0.2s both;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Улучшенные стили для форм */
+.form-select:focus, .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    transition: all 0.2s ease;
+}
+
+/* Стили для темной темы */
+[data-bs-theme="dark"] .login-card {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .form-control {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .form-select:focus,
+[data-bs-theme="dark"] .form-control:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary-color);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
-        <div class="card">
-            <div class="card-body p-4">
-                <div class="text-center mb-4">
-                    <div class="mb-3">
-                        <img src="/logo" alt="Логотип компании" 
-                             style="width: 80px; height: 80px; object-fit: contain; border-radius: 16px; 
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    </div>
-                    <h2 class="card-title">Добро пожаловать</h2>
-                    <p class="text-muted">Введите ваше имя и ПИН-код для входа в систему</p>
-                </div>
-                
-                {% if error %}
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    {{ error }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endif %}
-                
-                <form method="post" action="/login" id="loginForm">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Имя пользователя</label>
-                        <select class="form-select form-select-lg" 
-                                id="name" 
-                                name="name" 
-                                required
-                                autofocus>
-                            <option value="">Выберите пользователя</option>
-                            {% for user in users %}
-                            <option value="{{ user }}">{{ user }}</option>
-                            {% endfor %}
-                        </select>
+<div class="login-container">
+    <div class="row justify-content-center w-100">
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card login-card shadow-lg">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <img src="/logo" alt="Логотип компании" class="login-logo"
+                                 style="object-fit: contain; box-shadow: 0 6px 20px rgba(0,0,0,0.2);">
+                        </div>
+                        <h2 class="card-title login-title">Добро пожаловать</h2>
+                        <p class="text-muted login-subtitle">Введите ваше имя и ПИН-код для входа в систему</p>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="pin" class="form-label">ПИН-код</label>
-                        <input type="password" 
-                               class="form-control form-control-lg" 
-                               id="pin" 
-                               name="pin" 
-                               placeholder="Введите ПИН-код"
-                               maxlength="4"
-                               required>
+                    {% if error %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
+                    {% endif %}
                     
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>
-                            Войти
-                        </button>
+                    <form method="post" action="/login" id="loginForm">
+                        <div class="mb-4">
+                            <label for="name" class="form-label">
+                                <i class="bi bi-person me-2"></i>
+                                Имя пользователя
+                            </label>
+                            <select class="form-select form-select-lg" 
+                                    id="name" 
+                                    name="name" 
+                                    required
+                                    autofocus>
+                                <option value="">Выберите пользователя</option>
+                                {% for user in users %}
+                                <option value="{{ user }}">{{ user }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="pin" class="form-label">
+                                <i class="bi bi-lock me-2"></i>
+                                ПИН-код
+                            </label>
+                            <input type="password" 
+                                   class="form-control form-control-lg" 
+                                   id="pin" 
+                                   name="pin" 
+                                   placeholder="Введите ПИН-код"
+                                   maxlength="10"
+                                   required
+                                   autocomplete="off">
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>
+                                Войти в систему
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center login-info">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check me-1"></i>
+                            Доступ только для зарегистрированных пользователей
+                        </small>
                     </div>
-                </form>
-                
-                <div class="text-center mt-4">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Доступ только для зарегистрированных пользователей
-                    </small>
                 </div>
             </div>
         </div>
-        
-
     </div>
 </div>
 {% endblock %}
@@ -80,6 +283,66 @@ document.addEventListener('DOMContentLoaded', function() {
     const nameSelect = document.getElementById('name');
     if (nameSelect) {
         nameSelect.focus();
+    }
+    
+    // Добавляем анимацию для кнопки входа
+    const loginBtn = document.querySelector('.btn-primary');
+    if (loginBtn) {
+        loginBtn.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        loginBtn.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    }
+});
+
+// Улучшенная валидация формы
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const nameSelect = document.getElementById('name');
+    const pinInput = document.getElementById('pin');
+    
+    if (!nameSelect.value.trim()) {
+        e.preventDefault();
+        nameSelect.focus();
+        nameSelect.classList.add('is-invalid');
+        return;
+    }
+    
+    if (!pinInput.value.trim()) {
+        e.preventDefault();
+        pinInput.focus();
+        pinInput.classList.add('is-invalid');
+        return;
+    }
+    
+    // Убираем классы ошибок
+    nameSelect.classList.remove('is-invalid');
+    pinInput.classList.remove('is-invalid');
+});
+
+// Убираем классы ошибок при вводе
+document.getElementById('name').addEventListener('change', function() {
+    this.classList.remove('is-invalid');
+});
+
+document.getElementById('pin').addEventListener('input', function() {
+    this.classList.remove('is-invalid');
+});
+
+// Автоматический переход на поле ПИН-кода после выбора пользователя
+document.getElementById('name').addEventListener('change', function() {
+    if (this.value.trim()) {
+        document.getElementById('pin').focus();
+    }
+});
+
+// Предотвращение отправки формы при нажатии Enter в select
+document.getElementById('name').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('pin').focus();
     }
 });
 </script>

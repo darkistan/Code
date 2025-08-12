@@ -19,7 +19,7 @@
                     <i class="bi bi-image me-1"></i>
                     <span class="d-none d-sm-inline">Логотип</span>
                 </button>
-                <a href="/" class="btn btn-outline-secondary d-none d-md-inline-flex">
+                <a href="/" class="btn btn-outline-danger d-none d-md-inline-flex fw-bold">
                     <i class="bi bi-box-arrow-left me-1"></i>
                     Выйти
                 </a>
@@ -139,8 +139,9 @@
                                                 </form>
                                             {% endif %}
                                             
-                                            <button class="btn btn-sm btn-outline-secondary" 
-                                                    onclick="editComment({{ doc.id }}, '{{ doc.comment|e }}')"
+                                            <button class="btn btn-sm btn-outline-secondary edit-comment-btn" 
+                                                    data-doc-id="{{ doc.id }}" 
+                                                    data-comment="{{ doc.comment|e }}"
                                                     title="Редактировать комментарий">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
@@ -346,6 +347,24 @@
 </div>
 {% endblock %}
 
+{% block styles %}
+<style>
+/* Стили для кнопки выхода */
+.btn-outline-danger {
+    border-width: 2px;
+    font-weight: 600;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+</style>
+{% endblock %}
+
 {% block scripts %}
 <script>
 function editComment(docId, currentComment) {
@@ -355,6 +374,17 @@ function editComment(docId, currentComment) {
     const modal = new bootstrap.Modal(document.getElementById('commentModal'));
     modal.show();
 }
+
+// Обработчики для кнопок редактирования комментария
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-comment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const docId = this.getAttribute('data-doc-id');
+            const comment = this.getAttribute('data-comment');
+            editComment(docId, comment);
+        });
+    });
+});
 
 // Предпросмотр логотипа при выборе файла
 document.getElementById('logoFile').addEventListener('change', function(e) {
