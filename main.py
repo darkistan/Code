@@ -5,6 +5,7 @@ import shutil
 from datetime import datetime
 from typing import Optional, List
 import json
+import logging
 from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,32 @@ from pydantic import BaseModel
 os.makedirs("templates", exist_ok=True)
 os.makedirs("static", exist_ok=True)
 os.makedirs("static/documents", exist_ok=True)
+
+# Настройка логирования документов
+def setup_document_logging():
+    """Настраивает логирование выгруженных документов"""
+    # Создаем директорию для логов если её нет
+    os.makedirs("logs", exist_ok=True)
+    
+    # Настраиваем логгер для документов
+    doc_logger = logging.getLogger('documents')
+    doc_logger.setLevel(logging.INFO)
+    
+    # Создаем файловый обработчик для логов документов
+    doc_handler = logging.FileHandler('logs/documents.log', encoding='utf-8')
+    doc_handler.setLevel(logging.INFO)
+    
+    # Создаем форматтер для логов
+    formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    doc_handler.setFormatter(formatter)
+    
+    # Добавляем обработчик к логгеру
+    doc_logger.addHandler(doc_handler)
+    
+    return doc_logger
+
+# Инициализируем логгер для документов
+document_logger = setup_document_logging()
 
 app = FastAPI(title="Мобильная инвентаризация")
 
@@ -130,6 +157,11 @@ def init_db():
                         )
                         conn.commit()
                         print("Пользователь 'Администратор' автоматически создан в БД")
+                        # Логируем создание администратора
+                        try:
+                            document_logger.info("Автоматически создан пользователь 'Администратор' в базе данных")
+                        except:
+                            pass  # Игнорируем ошибки логирования при инициализации
                         break
         except FileNotFoundError:
             pass
@@ -138,6 +170,7 @@ def init_db():
 
 # Инициализация БД при запуске
 init_db()
+document_logger.info("База данных инициализирована")
 
 # Вспомогательные функции для работы с БД
 def get_db_connection():
@@ -215,6 +248,12 @@ def add_user_to_system(name: str, pin: str):
     conn.commit()
     conn.close()
     
+    # Логируем добавление пользователя в систему
+    try:
+        document_logger.info(f"Добавлен новый пользователь в систему: '{name}' (ID: {user_id})")
+    except:
+        pass  # Игнорируем ошибки логирования
+    
     return user_id
 
 def delete_user_from_system(user_id: int):
@@ -251,6 +290,12 @@ def delete_user_from_system(user_id: int):
     except Exception as e:
         print(f"Ошибка при удалении пользователя из users.txt: {e}")
     
+    # Логируем удаление пользователя из системы
+    try:
+        document_logger.info(f"Пользователь '{user_name}' (ID: {user_id}) удален из системы")
+    except:
+        pass  # Игнорируем ошибки логирования
+    
     return True
 
 def admin_delete_document(document_id: int) -> bool:
@@ -271,6 +316,10 @@ def admin_delete_document(document_id: int) -> bool:
         conn.close()
         return False
     
+    # Получаем количество штрихкодов в документе для логирования
+    cursor.execute("SELECT COUNT(*) as count FROM barcodes WHERE document_id = ?", (document_id,))
+    barcode_count = cursor.fetchone()['count']
+    
     # Удаляем CSV файл если он существует
     if document['status'] == 'closed':
         try:
@@ -281,6 +330,11 @@ def admin_delete_document(document_id: int) -> bool:
             if os.path.exists(csv_filepath):
                 os.remove(csv_filepath)
                 print(f"Админ удалил CSV файл: {csv_filename}")
+                # Логируем удаление CSV файла админом
+                try:
+                    document_logger.info(f"Админ удалил CSV файл: {csv_filename}")
+                except:
+                    pass
         except Exception as e:
             print(f"Ошибка при удалении CSV файла: {e}")
     
@@ -292,6 +346,13 @@ def admin_delete_document(document_id: int) -> bool:
     
     conn.commit()
     conn.close()
+    
+    # Логируем админское удаление документа
+    try:
+        document_logger.info(f"Админ удалил документ '{document['doc_type']}' (ID: {document_id}) пользователя '{document['user_name']}' с {barcode_count} штрихкодами")
+    except:
+        pass  # Игнорируем ошибки логирования
+    
     return True
 
 def get_or_create_user(name: str) -> int:
@@ -333,6 +394,15 @@ def create_document(user_id: int, doc_type: str, comment: str = '') -> int:
     document_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    
+    # Логируем создание документа
+    try:
+        cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+        user = cursor.fetchone()
+        user_name = user['name'] if user else f"User_{user_id}"
+        document_logger.info(f"Создан новый документ: '{doc_type}' (ID: {document_id}) для пользователя '{user_name}' (ID: {user_id}) с комментарием: '{comment or 'Без комментария'}'")
+    except:
+        pass  # Игнорируем ошибки логирования
     
     return document_id
 
@@ -429,18 +499,58 @@ def add_barcode(document_id: int, barcode: str):
     )
     conn.commit()
     conn.close()
+    
+    # Логируем добавление штрихкода
+    try:
+        cursor.execute("""
+            SELECT d.doc_type, u.name as user_name
+            FROM documents d
+            JOIN users u ON d.user_id = u.id
+            WHERE d.id = ?
+        """, (document_id,))
+        doc_info = cursor.fetchone()
+        if doc_info:
+            document_logger.info(f"Добавлен штрихкод '{barcode}' в документ '{doc_info['doc_type']}' (ID: {document_id}) пользователя '{doc_info['user_name']}'")
+    except:
+        pass  # Игнорируем ошибки логирования
 
 def delete_barcode(barcode_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Получаем информацию о штрихкоде перед удалением для логирования
+    cursor.execute("""
+        SELECT b.barcode, d.doc_type, d.id as doc_id, u.name as user_name
+        FROM barcodes b
+        JOIN documents d ON b.document_id = d.id
+        JOIN users u ON d.user_id = u.id
+        WHERE b.id = ?
+    """, (barcode_id,))
+    barcode_info = cursor.fetchone()
+    
     cursor.execute("DELETE FROM barcodes WHERE id = ?", (barcode_id,))
     conn.commit()
     conn.close()
+    
+    # Логируем удаление штрихкода
+    if barcode_info:
+        try:
+            document_logger.info(f"Удален штрихкод '{barcode_info['barcode']}' из документа '{barcode_info['doc_type']}' (ID: {barcode_info['doc_id']}) пользователя '{barcode_info['user_name']}'")
+        except:
+            pass  # Игнорируем ошибки логирования
 
 def close_document(document_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Получаем информацию о документе перед закрытием для логирования
+    cursor.execute("""
+        SELECT d.*, u.name as user_name
+        FROM documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ?
+    """, (document_id,))
+    doc_info = cursor.fetchone()
     
     cursor.execute(
         "UPDATE documents SET status = 'closed', closed_at = ? WHERE id = ?",
@@ -448,6 +558,13 @@ def close_document(document_id: int):
     )
     conn.commit()
     conn.close()
+    
+    # Логируем закрытие документа
+    if doc_info:
+        try:
+            document_logger.info(f"Документ '{doc_info['doc_type']}' (ID: {document_id}) пользователя '{doc_info['user_name']}' закрыт")
+        except:
+            pass  # Игнорируем ошибки логирования
 
 def get_user_documents(user_id: int) -> List[dict]:
     conn = get_db_connection()
@@ -480,6 +597,10 @@ def delete_document(document_id: int, user_id: int) -> bool:
         conn.close()
         return False
     
+    # Получаем количество штрихкодов в документе для логирования
+    cursor.execute("SELECT COUNT(*) as count FROM barcodes WHERE document_id = ?", (document_id,))
+    barcode_count = cursor.fetchone()['count']
+    
     # Удаляем CSV файл если он существует
     if document['status'] == 'closed':
         try:
@@ -490,6 +611,11 @@ def delete_document(document_id: int, user_id: int) -> bool:
             if os.path.exists(csv_filepath):
                 os.remove(csv_filepath)
                 print(f"Удален CSV файл: {csv_filename}")
+                # Логируем удаление CSV файла
+                try:
+                    document_logger.info(f"Удален CSV файл: {csv_filename}")
+                except:
+                    pass
         except Exception as e:
             print(f"Ошибка при удалении CSV файла: {e}")
     
@@ -501,12 +627,23 @@ def delete_document(document_id: int, user_id: int) -> bool:
     
     conn.commit()
     conn.close()
+    
+    # Логируем удаление документа
+    try:
+        document_logger.info(f"Удален документ '{document['doc_type']}' (ID: {document_id}) пользователя '{document['user_name']}' с {barcode_count} штрихкодами")
+    except:
+        pass  # Игнорируем ошибки логирования
+    
     return True
 
 def update_document_comment(document_id: int, user_id: int, comment: str) -> bool:
     """Обновляет комментарий к документу"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Получаем старый комментарий для логирования
+    cursor.execute("SELECT comment FROM documents WHERE id = ? AND user_id = ?", (document_id, user_id))
+    old_comment = cursor.fetchone()
     
     # Проверяем, что документ принадлежит пользователю
     cursor.execute(
@@ -517,12 +654,26 @@ def update_document_comment(document_id: int, user_id: int, comment: str) -> boo
     success = cursor.rowcount > 0
     conn.commit()
     conn.close()
+    
+    # Логируем обновление комментария
+    if success and old_comment:
+        try:
+            old_comment_text = old_comment['comment'] or 'Без комментария'
+            new_comment_text = comment or 'Без комментария'
+            document_logger.info(f"Обновлен комментарий к документу (ID: {document_id}): '{old_comment_text}' -> '{new_comment_text}'")
+        except:
+            pass  # Игнорируем ошибки логирования
+    
     return success
 
 def admin_update_document_comment(document_id: int, comment: str) -> bool:
     """Обновляет комментарий к документу (админская функция)"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Получаем старый комментарий для логирования
+    cursor.execute("SELECT comment FROM documents WHERE id = ?", (document_id,))
+    old_comment = cursor.fetchone()
     
     # Админ может редактировать любой документ
     cursor.execute(
@@ -533,6 +684,16 @@ def admin_update_document_comment(document_id: int, comment: str) -> bool:
     success = cursor.rowcount > 0
     conn.commit()
     conn.close()
+    
+    # Логируем админское обновление комментария
+    if success and old_comment:
+        try:
+            old_comment_text = old_comment['comment'] or 'Без комментария'
+            new_comment_text = comment or 'Без комментария'
+            document_logger.info(f"Админ обновил комментарий к документу (ID: {document_id}): '{old_comment_text}' -> '{new_comment_text}'")
+        except:
+            pass  # Игнорируем ошибки логирования
+    
     return success
 
 def generate_csv(document_id: int) -> str:
@@ -579,7 +740,40 @@ def generate_csv(document_id: int) -> str:
                 barcode['barcode']
             ])
     
+    # Логируем содержимое выгруженного документа
+    log_document_content(document, barcodes, filename)
+    
     return filename
+
+def log_document_content(document: dict, barcodes: List[dict], filename: str):
+    """Логирует содержимое выгруженного документа"""
+    try:
+        # Формируем детальную информацию о документе
+        doc_info = f"""
+=== ВЫГРУЖЕН ДОКУМЕНТ ===
+Файл: {filename}
+Пользователь: {document['user_name']}
+Тип документа: {document['doc_type']}
+Дата создания: {document['created_at']}
+Дата закрытия: {document['closed_at'] or 'Не закрыт'}
+Комментарий: {document['comment'] or 'Без комментария'}
+Количество штрихкодов: {len(barcodes)}
+
+СПИСОК ШТРИХКОДОВ:"""
+        
+        # Добавляем информацию о каждом штрихкоде
+        for i, barcode in enumerate(barcodes, 1):
+            barcode_time = datetime.fromisoformat(barcode['created_at']).strftime('%H:%M:%S')
+            doc_info += f"\n{i:3d}. {barcode['barcode']} (время сканирования: {barcode_time})"
+        
+        doc_info += "\n" + "="*50
+        
+        # Записываем в лог
+        document_logger.info(doc_info)
+        
+    except Exception as e:
+        # Если произошла ошибка при логировании, записываем её
+        document_logger.error(f"Ошибка при логировании документа {filename}: {str(e)}")
 
 # Маршруты
 @app.get("/", response_class=HTMLResponse)
@@ -616,6 +810,9 @@ async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
     
     # Проверяем авторизацию
     if not authenticate_user(name.strip(), pin.strip()):
+        # Логируем неудачную попытку входа
+        document_logger.warning(f"Неудачная попытка входа: пользователь '{name.strip()}' с неверным ПИН-кодом")
+        
         users = load_users_from_file()
         return templates.TemplateResponse("login.html", {
             "request": request,
@@ -631,6 +828,9 @@ async def login(request: Request, name: str = Form(...), pin: str = Form(...)):
             "users": list(users.keys()),
             "error": "Пользователь не найден в системе"
         })
+    
+    # Логируем успешный вход пользователя
+    document_logger.info(f"Пользователь '{name.strip()}' (ID: {user_id}) успешно вошел в систему")
     
     response = RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
     return response
@@ -726,6 +926,17 @@ async def create_new_document(user_id: int, doc_type: str = Form(...), comment: 
     # Создаем новый документ с комментарием
     document_id = create_document(user_id, doc_type, comment.strip())
     
+    # Получаем информацию о пользователе для логирования
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    user_name = user['name'] if user else f"User_{user_id}"
+    conn.close()
+    
+    # Логируем создание нового документа
+    document_logger.info(f"Пользователь {user_name} (ID: {user_id}) создал новый документ типа '{doc_type}' (ID: {document_id}) с комментарием: '{comment.strip() or 'Без комментария'}'")
+    
     return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
 
 @app.get("/scan/{user_id}", response_class=HTMLResponse)
@@ -776,6 +987,17 @@ async def add_new_barcode(user_id: int, barcode: str = Form(...)):
     
     barcode_value = barcode.strip()
     
+    # Получаем информацию о пользователе для логирования
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    user_name = user['name'] if user else f"User_{user_id}"
+    conn.close()
+    
+    # Логируем добавление штрихкода
+    document_logger.info(f"Пользователь {user_name} (ID: {user_id}) добавил штрихкод '{barcode_value}' в документ '{active_doc['doc_type']}' (ID: {active_doc['id']})")
+    
     # Добавляем штрихкод без проверки на дубликаты
     add_barcode(active_doc['id'], barcode_value)
     
@@ -783,6 +1005,23 @@ async def add_new_barcode(user_id: int, barcode: str = Form(...)):
 
 @app.post("/delete_barcode/{user_id}")
 async def remove_barcode(user_id: int, barcode_id: int = Form(...)):
+    # Получаем информацию о штрихкоде перед удалением для логирования
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT b.barcode, d.doc_type, d.id as doc_id, u.name as user_name
+        FROM barcodes b
+        JOIN documents d ON b.document_id = d.id
+        JOIN users u ON d.user_id = u.id
+        WHERE b.id = ? AND d.user_id = ?
+    """, (barcode_id, user_id))
+    barcode_info = cursor.fetchone()
+    conn.close()
+    
+    if barcode_info:
+        # Логируем удаление штрихкода
+        document_logger.info(f"Пользователь {barcode_info['user_name']} (ID: {user_id}) удалил штрихкод '{barcode_info['barcode']}' из документа '{barcode_info['doc_type']}' (ID: {barcode_info['doc_id']})")
+    
     # Удаляем только конкретный штрихкод по ID
     delete_barcode(barcode_id)
     return RedirectResponse(url=f"/scan/{user_id}", status_code=303)
@@ -798,6 +1037,17 @@ async def close_active_document(user_id: int):
     if not barcodes:
         raise HTTPException(status_code=400, detail="Нельзя закрыть пустой документ. Добавьте хотя бы один штрихкод.")
     
+    # Получаем информацию о пользователе для логирования
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    user_name = user['name'] if user else f"User_{user_id}"
+    conn.close()
+    
+    # Логируем закрытие документа
+    document_logger.info(f"Пользователь {user_name} (ID: {user_id}) закрыл документ '{active_doc['doc_type']}' (ID: {active_doc['id']}) с {len(barcodes)} штрихкодами")
+    
     close_document(active_doc['id'])
     generate_csv(active_doc['id'])
     
@@ -805,11 +1055,48 @@ async def close_active_document(user_id: int):
 
 @app.post("/regenerate_csv/{user_id}")
 async def regenerate_document_csv(user_id: int, document_id: int = Form(...)):
+    # Получаем информацию о документе для логирования
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT d.*, u.name as user_name
+        FROM documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ?
+    """, (document_id,))
+    document_info = cursor.fetchone()
+    conn.close()
+    
+    # Логируем регенерацию CSV пользователем
+    if document_info:
+        document_logger.info(f"Пользователь {document_info['user_name']} (ID: {user_id}) регенерировал CSV файл для документа '{document_info['doc_type']}' (ID: {document_id})")
+    
     filename = generate_csv(document_id)
     return RedirectResponse(url=f"/dashboard/{user_id}", status_code=303)
 
 @app.post("/delete_document/{user_id}")
 async def delete_user_document(user_id: int, document_id: int = Form(...)):
+    # Получаем информацию о документе перед удалением для логирования
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT d.*, u.name as user_name
+        FROM documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ? AND d.user_id = ?
+    """, (document_id, user_id))
+    document_info = cursor.fetchone()
+    
+    if document_info:
+        # Получаем количество штрихкодов в документе
+        cursor.execute("SELECT COUNT(*) as count FROM barcodes WHERE document_id = ?", (document_id,))
+        barcode_count = cursor.fetchone()['count']
+        
+        # Логируем удаление документа
+        document_logger.info(f"Пользователь {document_info['user_name']} (ID: {user_id}) удалил документ '{document_info['doc_type']}' (ID: {document_id}) с {barcode_count} штрихкодами. Комментарий: '{document_info['comment'] or 'Без комментария'}'")
+    
+    conn.close()
+    
     success = delete_document(document_id, user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Документ не найден или нет прав доступа")
@@ -823,19 +1110,36 @@ async def update_comment(user_id: int, document_id: int = Form(...), comment: st
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
+    
+    # Получаем информацию о документе для логирования
+    cursor.execute("""
+        SELECT d.*, u.name as user_name
+        FROM documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ?
+    """, (document_id,))
+    document_info = cursor.fetchone()
     conn.close()
     
     if user and is_admin(user['name']):
         # Для админа - обновляем без проверки прав доступа
         success = admin_update_document_comment(document_id, comment.strip())
         redirect_url = f"/admin/{user_id}"
+        user_type = "администратор"
     else:
         # Для обычного пользователя - обычная проверка
         success = update_document_comment(document_id, user_id, comment.strip())
         redirect_url = f"/dashboard/{user_id}"
+        user_type = "пользователь"
     
     if not success:
         raise HTTPException(status_code=404, detail="Документ не найден или нет прав доступа")
+    
+    # Логируем обновление комментария
+    if document_info:
+        old_comment = document_info['comment'] or 'Без комментария'
+        new_comment = comment.strip() or 'Без комментария'
+        document_logger.info(f"{user_type.capitalize()} {user['name']} (ID: {user_id}) обновил комментарий к документу '{document_info['doc_type']}' (ID: {document_id}). Старый комментарий: '{old_comment}', новый комментарий: '{new_comment}'")
     
     return RedirectResponse(url=redirect_url, status_code=303)
 
@@ -899,6 +1203,24 @@ async def admin_delete_doc(user_id: int, document_id: int = Form(...)):
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
+    
+    # Получаем информацию о документе для логирования
+    cursor.execute("""
+        SELECT d.*, u.name as user_name
+        FROM documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ?
+    """, (document_id,))
+    document_info = cursor.fetchone()
+    
+    if document_info:
+        # Получаем количество штрихкодов в документе
+        cursor.execute("SELECT COUNT(*) as count FROM barcodes WHERE document_id = ?", (document_id,))
+        barcode_count = cursor.fetchone()['count']
+        
+        # Логируем админское удаление документа
+        document_logger.info(f"АДМИНИСТРАТОР {user['name']} (ID: {user_id}) удалил документ '{document_info['doc_type']}' (ID: {document_id}) пользователя '{document_info['user_name']}' с {barcode_count} штрихкодами. Комментарий: '{document_info['comment'] or 'Без комментария'}'")
+    
     conn.close()
     
     if not user or not is_admin(user['name']):
@@ -917,10 +1239,23 @@ async def admin_regenerate_csv(user_id: int, document_id: int = Form(...)):
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
+    
+    # Получаем информацию о документе для логирования
+    cursor.execute("""
+        SELECT d.*, u.name as user_name
+        FROM documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ?
+    """, (document_id,))
+    document_info = cursor.fetchone()
     conn.close()
     
     if not user or not is_admin(user['name']):
         raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Логируем регенерацию CSV
+    if document_info:
+        document_logger.info(f"АДМИНИСТРАТОР {user['name']} (ID: {user_id}) регенерировал CSV файл для документа '{document_info['doc_type']}' (ID: {document_id}) пользователя '{document_info['user_name']}'")
     
     filename = generate_csv(document_id)
     return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
@@ -1007,6 +1342,9 @@ async def upload_logo(user_id: int, logo: UploadFile = File(...)):
     with open(logo_path, "wb") as f:
         f.write(content)
     
+    # Логируем загрузку нового логотипа
+    document_logger.info(f"АДМИНИСТРАТОР {user['name']} (ID: {user_id}) загрузил новый логотип: {logo_filename} ({len(content)} байт)")
+    
     return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
 
 @app.post("/admin/add_user/{user_id}")
@@ -1044,6 +1382,10 @@ async def admin_add_user(user_id: int, name: str = Form(...), pin: str = Form(..
     
     try:
         add_user_to_system(name, pin)
+        
+        # Логируем добавление нового пользователя
+        document_logger.info(f"АДМИНИСТРАТОР {user['name']} (ID: {user_id}) добавил нового пользователя: '{name}' с ПИН-кодом")
+        
         return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при добавлении пользователя: {str(e)}")
@@ -1056,6 +1398,17 @@ async def admin_delete_user(user_id: int, delete_user_id: int = Form(...)):
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
+    
+    # Получаем информацию об удаляемом пользователе для логирования
+    cursor.execute("SELECT name FROM users WHERE id = ?", (delete_user_id,))
+    delete_user = cursor.fetchone()
+    
+    # Получаем статистику удаляемого пользователя
+    cursor.execute("SELECT COUNT(*) as doc_count FROM documents WHERE user_id = ?", (delete_user_id,))
+    doc_count = cursor.fetchone()['doc_count']
+    
+    cursor.execute("SELECT COUNT(*) as barcode_count FROM barcodes WHERE document_id IN (SELECT id FROM documents WHERE user_id = ?)", (delete_user_id,))
+    barcode_count = cursor.fetchone()['barcode_count']
     conn.close()
     
     if not user or not is_admin(dict(user)['name']):
@@ -1066,12 +1419,6 @@ async def admin_delete_user(user_id: int, delete_user_id: int = Form(...)):
         raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
     
     # Нельзя удалить администратора
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM users WHERE id = ?", (delete_user_id,))
-    delete_user = cursor.fetchone()
-    conn.close()
-    
     if delete_user and is_admin(dict(delete_user)['name']):
         raise HTTPException(status_code=400, detail="Нельзя удалить администратора")
     
@@ -1079,6 +1426,11 @@ async def admin_delete_user(user_id: int, delete_user_id: int = Form(...)):
         success = delete_user_from_system(delete_user_id)
         if not success:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
+        
+        # Логируем удаление пользователя
+        if delete_user:
+            document_logger.info(f"АДМИНИСТРАТОР {user['name']} (ID: {user_id}) удалил пользователя '{delete_user['name']}' (ID: {delete_user_id}) с {doc_count} документами и {barcode_count} штрихкодами")
+        
         return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя: {str(e)}")
@@ -1155,6 +1507,9 @@ async def set_language(request: Request, language: str = Form(...)):
     # Получаем URL для редиректа из referer или переходим на главную
     referer = request.headers.get('referer', '/')
     
+    # Логируем изменение языка
+    document_logger.info(f"Изменен язык интерфейса на: {language.upper()}")
+    
     response = RedirectResponse(url=referer, status_code=303)
     response.set_cookie(key="language", value=language, max_age=365*24*60*60)  # 1 год
     return response
@@ -1185,5 +1540,11 @@ async def get_favicon():
     return Response(content=svg_icon, media_type="image/svg+xml")
 
 if __name__ == "__main__":
+    # Логируем запуск приложения
+    document_logger.info("="*60)
+    document_logger.info("ПРИЛОЖЕНИЕ ЗАПУЩЕНО")
+    document_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    document_logger.info("="*60)
+    
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
