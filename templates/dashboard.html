@@ -113,6 +113,74 @@
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
+/* Стили для кнопки просмотра документа */
+.btn-outline-info {
+    border-width: 2px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-info:hover {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 202, 240, 0.3);
+}
+
+/* Анимация для кнопки просмотра */
+.btn-outline-info {
+    animation: viewButtonPulse 2s ease-in-out infinite;
+}
+
+@keyframes viewButtonPulse {
+    0% { box-shadow: 0 0 0 0 rgba(13, 202, 240, 0.3); }
+    50% { box-shadow: 0 0 0 0.3rem rgba(13, 202, 240, 0.5); }
+    100% { box-shadow: 0 0 0 0 rgba(13, 202, 240, 0.3); }
+}
+
+.btn-outline-info:hover {
+    animation: none;
+}
+
+/* Стили для поля комментария - зелёная рамка для привлечения внимания */
+.comment-field {
+    border: 3px solid #198754 !important;
+    border-radius: 0.75rem !important;
+    background-color: rgba(25, 135, 84, 0.05) !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15) !important;
+}
+
+.comment-field:focus {
+    border-color: #157347 !important;
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    box-shadow: 0 0 0 0.3rem rgba(25, 135, 84, 0.25) !important;
+    transform: translateY(-1px) !important;
+}
+
+.comment-field::placeholder {
+    color: #198754 !important;
+    font-weight: 500 !important;
+    opacity: 0.8 !important;
+}
+
+/* Анимация пульсации для привлечения внимания */
+@keyframes commentPulse {
+    0% { box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15); }
+    50% { box-shadow: 0 0 0 0.3rem rgba(25, 135, 84, 0.3); }
+    100% { box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15); }
+}
+
+.comment-field {
+    animation: commentPulse 3s ease-in-out infinite;
+}
+
+/* Останавливаем анимацию при фокусе */
+.comment-field:focus {
+    animation: none;
+}
+
 /* PWA режим - исправление прокрутки */
 .pwa-mode html,
 .pwa-mode body {
@@ -247,17 +315,17 @@
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="bi bi-plus-circle me-2"></i>
-                    Создать новый документ
+                    
                 </h5>
             </div>
             <div class="card-body">
-                <p class="text-muted">Выберите тип документа для начала работы:</p>
+
                 
                 <!-- Форма создания документа с комментарием -->
                 <form method="post" action="/create_document/{{ user.id }}" id="createDocForm">
                     <div class="mb-3">
                         <label for="comment" class="form-label">Комментарий к документу (необязательно)</label>
-                        <textarea class="form-control" id="comment" name="comment" rows="2" 
+                        <textarea class="form-control comment-field" id="comment" name="comment" rows="2" 
                                   placeholder="Введите описание или комментарий к документу..."></textarea>
                     </div>
                     
@@ -346,6 +414,12 @@
                                     <div class="col-md-4">
                                         <div class="d-flex flex-wrap gap-2 justify-content-md-end btn-group-mobile">
                                             {% if doc.status == 'closed' %}
+                                                <a href="/view_document/{{ user.id }}/{{ doc.id }}" class="btn btn-sm btn-outline-info" 
+                                                   title="Просмотр документа">
+                                                    <i class="bi bi-eye me-1"></i>
+                                                    <span class="d-none d-sm-inline">Просмотр</span>
+                                                </a>
+                                                
                                                 <form method="post" action="/regenerate_csv/{{ user.id }}" class="d-inline">
                                                     <input type="hidden" name="document_id" value="{{ doc.id }}">
                                                     <button type="submit" class="btn btn-sm btn-outline-primary">

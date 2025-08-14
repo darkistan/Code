@@ -428,21 +428,7 @@
             font-size: 0.9rem;
         }
         
-        /* В PWA режиме кнопка "Сохранить" должна быть хорошо видна */
-        .pwa-mode .btn-success {
-            background-color: #198754;
-            border-color: #198754;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
-        }
-        
-        .pwa-mode .btn-success:hover {
-            background-color: #157347;
-            border-color: #157347;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
-        }
+
         
         /* Скрываем кнопку полноэкранного режима в PWA */
         .pwa-mode button[onclick="toggleFullscreen()"] {
@@ -1074,34 +1060,7 @@
                     localStorage.setItem('fullscreen', 'true');
                 }
                 
-                // Модифицируем кнопку "Сканер" на "Сохранить" если находимся на странице сканирования
-                const scannerBtn = document.getElementById('scanner-btn');
-                if (scannerBtn && window.location.pathname.includes('/scan/')) {
-                    // Переименовываем кнопку в "Сохранить"
-                    scannerBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Сохранить';
-                    scannerBtn.title = 'Сохранить документ';
-                    scannerBtn.classList.remove('btn-outline-light');
-                    scannerBtn.classList.add('btn-success');
-                    
-                    // Добавляем обработчик для сохранения документа
-                    scannerBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        // Вызываем функцию сохранения из scan.html
-                        if (typeof saveDocument === 'function') {
-                            saveDocument(e);
-                        } else {
-                            // Если функция не найдена, ждем немного и пробуем снова
-                            setTimeout(() => {
-                                if (typeof saveDocument === 'function') {
-                                    saveDocument(e);
-                                } else {
-                                    console.error('Функция saveDocument не найдена');
-                                    alert('Ошибка: функция сохранения не загружена. Попробуйте обновить страницу.');
-                                }
-                            }, 1000);
-                        }
-                    });
-                }
+
                 
                 // Предотвращаем выход из полноэкранного режима в PWA
                 document.addEventListener('fullscreenchange', function() {
@@ -1401,28 +1360,7 @@
                             `;
                         });
                         
-                        // Принудительно скрываем все кнопки сохранения
-                        const saveButtons = document.querySelectorAll('.btn-save-document, .btn-success[onclick*="confirm"]');
-                        saveButtons.forEach(btn => {
-                            btn.style.cssText = `
-                                display: none !important;
-                                visibility: hidden !important;
-                                opacity: 0 !important;
-                                width: 0 !important;
-                                height: 0 !important;
-                                padding: 0 !important;
-                                margin: 0 !important;
-                                border: none !important;
-                                position: absolute !important;
-                                left: -9999px !important;
-                                clip: rect(0, 0, 0, 0) !important;
-                                pointer-events: none !important;
-                                font-size: 0 !important;
-                                line-height: 0 !important;
-                                z-index: -9999 !important;
-                                transform: scale(0) !important;
-                            `;
-                        });
+
                     }
                 }
                 

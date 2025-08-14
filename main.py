@@ -1260,6 +1260,54 @@ async def admin_regenerate_csv(user_id: int, document_id: int = Form(...)):
     filename = generate_csv(document_id)
     return RedirectResponse(url=f"/admin/{user_id}", status_code=303)
 
+@app.get("/view_document/{user_id}/{document_id}", response_class=HTMLResponse)
+async def view_document(request: Request, user_id: int, document_id: int):
+    """Просмотр документа обычным пользователем"""
+    # Проверяем существование пользователя
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # Получаем документ с информацией о пользователе
+    cursor.execute("""
+        SELECT d.*, u.name as user_name 
+        FROM documents d 
+        JOIN users u ON d.user_id = u.id 
+        WHERE d.id = ?
+    """, (document_id,))
+    document = cursor.fetchone()
+    
+    if not document:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    
+    # Проверяем, что документ принадлежит этому пользователю
+    if document['user_id'] != user_id:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Получаем штрихкоды документа (отсортированные для группировки рядом)
+    barcodes = get_document_barcodes_sorted(document_id)
+    
+    conn.close()
+    
+    current_lang = get_user_language(request)
+    locale = load_locale(current_lang)
+    
+    return templates.TemplateResponse("view_document.html", {
+        "request": request,
+        "user": dict(user),
+        "document": dict(document),
+        "barcodes": barcodes,
+        "locale": locale,
+        "current_lang": current_lang
+    })
+
 @app.get("/admin/document/{user_id}/{document_id}", response_class=HTMLResponse)
 async def admin_view_document(request: Request, user_id: int, document_id: int):
     # Проверяем права администратора

@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block title %}Просмотр документа - {{ user.name }}{% endblock %}
+
+{% block styles %}
+<style>
+/* Стили для кнопки выхода */
+.btn-outline-danger {
+    border-width: 2px;
+    font-weight: 600;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Стили для кнопки назад */
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+/* Цветовые классы для парных штрихкодов */
+.barcode-duplicate-0 {
+    border-left: 4px solid #ff6b6b !important;
+    background-color: rgba(255, 107, 107, 0.1) !important;
+}
+
+.barcode-duplicate-1 {
+    border-left: 4px solid #4ecdc4 !important;
+    background-color: rgba(78, 205, 196, 0.1) !important;
+}
+
+.barcode-duplicate-2 {
+    border-left: 4px solid #45b7d1 !important;
+    background-color: rgba(69, 183, 209, 0.1) !important;
+}
+
+.barcode-duplicate-3 {
+    border-left: 4px solid #96ceb4 !important;
+    background-color: rgba(150, 206, 180, 0.1) !important;
+}
+
+/* Цветовые индикаторы для парных штрихкодов */
+.color-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.color-indicator-0 { background-color: #ff6b6b; }
+.color-indicator-1 { background-color: #4ecdc4; }
+.color-indicator-2 { background-color: #45b7d1; }
+.color-indicator-3 { background-color: #96ceb4; }
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .document-info .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .barcode-item {
+        padding: 0.75rem !important;
+    }
+    
+    .btn-group-mobile {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn-group-mobile .btn {
+        width: 100%;
+        margin: 0;
+    }
+}
+
+/* PWA режим - исправление прокрутки */
+.pwa-mode html,
+.pwa-mode body {
+    overflow: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+
+.pwa-mode .container,
+.pwa-mode main {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+
+.pwa-mode .row,
+.pwa-mode .col,
+.pwa-mode .col-12 {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+
+.pwa-mode .card,
+.pwa-mode .card-body {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+
+/* Дополнительные исправления для PWA */
+.pwa-mode * {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+/* Исключения для flexbox и позиционирования */
+.pwa-mode .d-flex,
+.pwa-mode .d-grid,
+.pwa-mode .d-inline,
+.pwa-mode .d-inline-flex,
+.pwa-mode .d-md-flex,
+.pwa-mode .d-md-inline-flex,
+.pwa-mode .justify-content-between,
+.pwa-mode .align-items-center,
+.pwa-mode .text-center,
+.pwa-mode .position-relative {
+    position: relative !important;
+    transform: none !important;
+}
+
+/* Принудительное включение прокрутки для body в PWA */
+.pwa-mode body {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Дополнительные принудительные исправления для PWA */
+.pwa-mode html {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.pwa-mode .container {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.pwa-mode main {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+/* Принудительно убираем все возможные блокировки прокрутки */
+.pwa-mode .card {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+
+.pwa-mode .card-body {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+
+/* Исправляем для списка штрихкодов */
+.pwa-mode .barcode-item {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="bi bi-file-text text-info me-2"></i>
+                Просмотр документа
+            </h1>
+            <div class="d-flex gap-2">
+                <a href="/dashboard/{{ user.id }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    <span class="d-none d-sm-inline">Назад к панели</span>
+                </a>
+                <a href="/" class="btn btn-outline-danger d-none d-md-inline-flex fw-bold">
+                    <i class="bi bi-box-arrow-left me-1"></i>
+                    Выйти
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Информация о документе -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    {% if document.doc_type == 'Инвентаризация' %}
+                        <i class="bi bi-clipboard-check text-primary me-2"></i>
+                    {% elif document.doc_type == 'Приход' %}
+                        <i class="bi bi-box-arrow-in-down text-success me-2"></i>
+                    {% else %}
+                        <i class="bi bi-box-arrow-up text-danger me-2"></i>
+                    {% endif %}
+                    {{ document.doc_type }}
+                    {% if document.status == 'active' %}
+                        <span class="badge bg-success ms-2">Активный</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-2">Закрыт</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row document-info">
+                    <div class="col-md-6">
+                        <p><strong>Оператор:</strong> 
+                            <span class="badge bg-info">
+                                <i class="bi bi-person me-1"></i>
+                                {{ document.user_name }}
+                            </span>
+                        </p>
+                        <p><strong>Создан:</strong> {{ document.created_at[:19].replace('T', ' ') }}</p>
+                        {% if document.closed_at %}
+                        <p><strong>Закрыт:</strong> {{ document.closed_at[:19].replace('T', ' ') }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Всего штрихкодов:</strong> 
+                            <span class="badge bg-primary">{{ barcodes|length }}</span>
+                        </p>
+                        {% if document.comment %}
+                        <p><strong>Комментарий:</strong></p>
+                        <div class="alert alert-info py-2">
+                            <i class="bi bi-chat-left-text me-1"></i>
+                            {{ document.comment }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список штрихкодов -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-upc-scan me-2"></i>
+                    Штрихкоды ({{ barcodes|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if barcodes %}
+                <div class="row">
+                    {% for barcode in barcodes %}
+                    <div class="col-12 mb-2">
+                        <div class="barcode-item p-3 rounded 
+                                    {% if barcode.is_duplicate %}
+                                        barcode-duplicate-{{ barcode.color_index }}
+                                    {% endif %}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center">
+                                        {% if barcode.is_duplicate %}
+                                            <span class="color-indicator color-indicator-{{ barcode.color_index }}"></span>
+                                        {% endif %}
+                                        <strong class="font-monospace me-2">{{ barcode.barcode }}</strong>
+                                        {% if barcode.is_duplicate %}
+                                            <span class="badge bg-secondary text-white">
+                                                <i class="bi bi-layers me-1"></i>
+                                                {{ barcode.sequence_number }} из {{ barcode.total_count }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock me-1"></i>
+                                        {{ barcode.created_at[:19].replace('T', ' ') }}
+                                    </small>
+                                </div>
+                                <div class="text-muted small">
+                                    #{{ loop.index }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-upc-scan text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">Штрихкодов нет</h4>
+                    <p class="text-muted">В этом документе пока нет отсканированных штрихкодов</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Кнопки действий -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 justify-content-center btn-group-mobile">
+                    {% if document.status == 'closed' %}
+                        <form method="post" action="/regenerate_csv/{{ user.id }}" class="d-inline">
+                            <input type="hidden" name="document_id" value="{{ document.id }}">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-download me-1"></i>
+                                Скачать CSV
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    <a href="/dashboard/{{ user.id }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Вернуться к панели
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Функция исправления прокрутки в PWA режиме
+function fixPWAScrolling() {
+    if (document.body.classList.contains('pwa-mode')) {
+        // Принудительно включаем прокрутку для body
+        document.body.style.setProperty('overflow-y', 'auto', 'important');
+        document.body.style.setProperty('overflow-x', 'hidden', 'important');
+        document.body.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+        document.body.style.setProperty('height', 'auto', 'important');
+        document.body.style.setProperty('max-height', 'none', 'important');
+        document.body.style.setProperty('position', 'relative', 'important');
+        
+        // Исправляем все основные элементы
+        const elements = document.querySelectorAll('html, .container, main, .row, .col, .col-12, .card, .card-body');
+        elements.forEach(el => {
+            el.style.setProperty('overflow', 'visible', 'important');
+            el.style.setProperty('max-height', 'none', 'important');
+            el.style.setProperty('height', 'auto', 'important');
+            el.style.setProperty('position', 'relative', 'important');
+            el.style.setProperty('transform', 'none', 'important');
+            el.style.setProperty('clip', 'auto', 'important');
+        });
+        
+        // Принудительно включаем прокрутку для html
+        document.documentElement.style.setProperty('overflow', 'auto', 'important');
+        document.documentElement.style.setProperty('height', 'auto', 'important');
+        document.documentElement.style.setProperty('max-height', 'none', 'important');
+        
+        // Убираем фиксированное позиционирование
+        document.body.style.setProperty('position', 'relative', 'important');
+        document.body.style.setProperty('top', 'auto', 'important');
+        document.body.style.setProperty('left', 'auto', 'important');
+        document.body.style.setProperty('right', 'auto', 'important');
+        document.body.style.setProperty('bottom', 'auto', 'important');
+    }
+}
+
+// Принудительное исправление прокрутки PWA
+function forcePWAScrollingFix() {
+    if (document.body.classList.contains('pwa-mode')) {
+        fixPWAScrolling();
+        
+        // Дополнительно принуждаем прокрутку
+        document.body.style.setProperty('overflow-y', 'auto', 'important');
+        document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
+        
+        // Убираем все возможные блокировки прокрутки
+        document.body.style.setProperty('position', 'relative', 'important');
+        document.body.style.setProperty('overflow', 'auto', 'important');
+        document.body.style.setProperty('height', 'auto', 'important');
+    }
+}
+
+// Функция для максимально агрессивного исправления прокрутки
+function aggressivePWAScrollingFix() {
+    if (document.body.classList.contains('pwa-mode')) {
+        // Принудительно убираем все возможные блокировки
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+            if (el !== document.body && el !== document.documentElement) {
+                el.style.setProperty('overflow', 'visible', 'important');
+                el.style.setProperty('max-height', 'none', 'important');
+                el.style.setProperty('height', 'auto', 'important');
+                el.style.setProperty('position', 'relative', 'important');
+                el.style.setProperty('transform', 'none', 'important');
+                el.style.setProperty('clip', 'auto', 'important');
+            }
+        });
+        
+        // Принудительно включаем прокрутку
+        document.body.style.setProperty('overflow-y', 'auto', 'important');
+        document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
+    }
+}
+
+// Применяем исправления прокрутки PWA при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    fixPWAScrolling();
+    
+    // Дополнительно через небольшую задержку
+    setTimeout(fixPWAScrolling, 100);
+    setTimeout(aggressivePWAScrollingFix, 500);
+});
+
+// Непрерывный мониторинг и исправление прокрутки PWA
+setInterval(forcePWAScrollingFix, 500);
+setInterval(aggressivePWAScrollingFix, 2000);
+
+// Дополнительно исправляем при изменении размера окна
+window.addEventListener('resize', function() {
+    if (document.body.classList.contains('pwa-mode')) {
+        setTimeout(fixPWAScrolling, 100);
+    }
+});
+
+// Исправляем при изменении ориентации устройства
+window.addEventListener('orientationchange', function() {
+    if (document.body.classList.contains('pwa-mode')) {
+        setTimeout(fixPWAScrolling, 500);
+        setTimeout(aggressivePWAScrollingFix, 1000);
+    }
+});
+</script>
+{% endblock %}
