@@ -112,6 +112,68 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
+
+/* PWA режим - исправление прокрутки */
+.pwa-mode html,
+.pwa-mode body {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.pwa-mode .container,
+.pwa-mode main {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.pwa-mode .row,
+.pwa-mode .col,
+.pwa-mode .col-12 {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.pwa-mode .card,
+.pwa-mode .card-body {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.pwa-mode .modal,
+.pwa-mode .modal-content,
+.pwa-mode .modal-body {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.pwa-mode * {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+/* Исключения для flexbox и позиционирования */
+.pwa-mode .d-flex,
+.pwa-mode .d-grid,
+.pwa-mode .d-inline,
+.pwa-mode .d-inline-flex,
+.pwa-mode .d-md-flex,
+.pwa-mode .d-md-inline-flex,
+.pwa-mode .justify-content-between,
+.pwa-mode .align-items-center,
+.pwa-mode .text-center,
+.pwa-mode .position-relative {
+    position: relative !important;
+    transform: none !important;
+}
 </style>
 {% endblock %}
 
@@ -164,11 +226,11 @@
                                 <span class="d-none d-sm-inline">Продолжить </span>Сканирование
                             </a>
                             <form method="post" action="/close_document/{{ user.id }}" class="d-inline">
-                                <button type="submit" class="btn btn-outline-danger w-100 w-md-auto" 
+                                                                    <button type="submit" class="btn btn-outline-danger w-100 w-md-auto" 
                                         onclick="return confirm('Закрыть документ и сохранить CSV?')">
-                                    <i class="bi bi-check-circle me-1"></i>
-                                    <span class="d-none d-sm-inline">Завершить </span>Документ
-                                </button>
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        <span class="d-none d-sm-inline">Завершить </span>Провести документ
+                                    </button>
                             </form>
                         </div>
                     </div>
@@ -365,6 +427,28 @@ function editComment(docId, currentComment) {
     modal.show();
 }
 
+// Функция исправления прокрутки в PWA режиме
+function fixPWAScrolling() {
+    if (document.body.classList.contains('pwa-mode')) {
+        const elements = document.querySelectorAll('html, body, .container, main, .row, .col, .col-12, .card, .card-body, .modal, .modal-content, .modal-body, *');
+        elements.forEach(el => {
+            el.style.setProperty('overflow', 'visible', 'important');
+            el.style.setProperty('max-height', 'none', 'important');
+            el.style.setProperty('height', 'auto', 'important');
+            el.style.setProperty('position', 'relative', 'important');
+            el.style.setProperty('transform', 'none', 'important');
+            el.style.setProperty('clip', 'auto', 'important');
+        });
+    }
+}
+
+// Принудительное исправление прокрутки PWA
+function forcePWAScrollingFix() {
+    if (document.body.classList.contains('pwa-mode')) {
+        fixPWAScrolling();
+    }
+}
+
 // Обработчики для кнопок редактирования комментария
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.edit-comment-btn').forEach(button => {
@@ -374,6 +458,9 @@ document.addEventListener('DOMContentLoaded', function() {
             editComment(docId, comment);
         });
     });
+    
+    // Применяем исправления прокрутки PWA при загрузке
+    fixPWAScrolling();
 });
 
 // Автофокус на поле комментария при открытии модального окна
@@ -388,5 +475,8 @@ document.getElementById('comment').addEventListener('keydown', function(e) {
         document.getElementById('createDocForm').submit();
     }
 });
+
+// Непрерывный мониторинг и исправление прокрутки PWA
+setInterval(forcePWAScrollingFix, 1000);
 </script>
 {% endblock %}
