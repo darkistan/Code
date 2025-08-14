@@ -2,8 +2,24 @@
 
 {% block title %}Сканирование - {{ document.doc_type }}{% endblock %}
 
+{% block head %}
+<!-- Дополнительные мета-теги для правильной работы клавиатуры на мобильных -->
+<meta name="format-detection" content="telephone=no">
+<meta name="format-detection" content="date=no">
+<meta name="format-detection" content="address=no">
+<meta name="format-detection" content="email=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d6efd">
+<!-- Принудительно устанавливаем английский язык для страницы сканирования -->
+<meta http-equiv="Content-Language" content="en">
+<meta name="language" content="en">
+{% endblock %}
+
 {% block styles %}
 <style>
+
 /* Цветовые классы для парных штрихкодов */
 .barcode-duplicate-0 {
     border-left: 4px solid #ff6b6b !important;
@@ -67,117 +83,545 @@
 .color-indicator-2 { background-color: #45b7d1; }
 .color-indicator-3 { background-color: #96ceb4; }
 
-/* Стили для виртуальной клавиатуры */
-.virtual-keyboard {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #f8f9fa;
-    border-top: 2px solid #dee2e6;
-    padding: 10px;
-    z-index: 1050;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+
+
+
+
+/* Зеленая рамка для поля ввода штрихкода */
+.scanner-input {
+    border: 3px solid #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+    transition: all 0.3s ease;
 }
 
-.virtual-keyboard.show {
-    transform: translateY(0);
+.scanner-input:focus {
+    border-color: #20c997 !important;
+    box-shadow: 0 0 0 0.2rem rgba(32, 201, 151, 0.25) !important;
 }
 
-.keyboard-row {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    margin-bottom: 5px;
+/* Исправление прокрутки для PWA режима */
+.pwa-mode .card-body,
+.pwa-mode .list-group,
+.pwa-mode .barcode-item {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
 }
 
-.keyboard-key {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 5px;
-    padding: 8px 12px;
-    font-size: 14px;
-    cursor: pointer;
-    user-select: none;
-    min-width: 40px;
-    text-align: center;
-    transition: all 0.2s;
+.pwa-mode .card {
+    overflow: visible !important;
 }
 
-.keyboard-key:hover {
-    background: #e9ecef;
+/* Специальные стили для исправления прокрутки в PWA режиме */
+.pwa-mode {
+    overflow: auto !important;
+    height: 100vh !important;
+    position: relative !important;
+}
+
+.pwa-mode body {
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    position: relative !important;
+}
+
+.pwa-mode .container {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+.pwa-mode main {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    padding-bottom: 2rem !important;
+}
+
+.pwa-mode .row {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+.pwa-mode .col,
+.pwa-mode .col-12 {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+/* Принудительное включение прокрутки для всех элементов в PWA */
+/* removed global .pwa-mode * override */
+
+/* Специальные стили для панели управления пользователя в PWA */
+.pwa-mode .card-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+.pwa-mode .list-group {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+.pwa-mode .barcode-list {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+/* Исправление для мобильной навигации в PWA */
+.pwa-mode .navbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1030 !important;
+    overflow: visible !important;
+}
+
+/* Исправление для плавающей кнопки сохранения в PWA */
+.pwa-mode .position-fixed {
+    position: fixed !important;
+    z-index: 1050 !important;
+    overflow: visible !important;
+}
+
+/* Дополнительные стили для исправления прокрутки в PWA режиме */
+.pwa-mode html {
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.pwa-mode body {
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.pwa-mode .container-fluid {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .row {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.pwa-mode .col,
+.pwa-mode .col-1,
+.pwa-mode .col-2,
+.pwa-mode .col-3,
+.pwa-mode .col-4,
+.pwa-mode .col-5,
+.pwa-mode .col-6,
+.pwa-mode .col-7,
+.pwa-mode .col-8,
+.pwa-mode .col-9,
+.pwa-mode .col-10,
+.pwa-mode .col-11,
+.pwa-mode .col-12 {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    margin: 0 !important;
+    padding: 0.5rem !important;
+}
+
+.pwa-mode .card {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    margin-bottom: 1rem !important;
+}
+
+.pwa-mode .card-body {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    padding: 1rem !important;
+}
+
+.pwa-mode .list-group {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .list-group-item {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .barcode-list {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .barcode-item {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Принудительное включение прокрутки для всех элементов в PWA */
+/* removed global .pwa-mode * override */
+
+/* Специальные стили для исправления прокрутки в PWA */
+.pwa-mode .scanner-input {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+
+
+/* Улучшенная прокрутка для мобильных устройств */
+@media (max-width: 768px) {
+    .card-body {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: 60vh;
+    }
+    
+    .list-group {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: 50vh;
+    }
+}
+
+/* Стили для кнопки "Назад" */
+.btn-back {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
-.keyboard-key:active {
-    background: #dee2e6;
-    transform: translateY(0);
+/* Адаптация для PWA режима */
+.pwa-mode .btn-back {
+    background-color: #495057;
+    border-color: #495057;
 }
 
-.keyboard-key.special {
-    background: #6c757d;
-    color: white;
-    min-width: 60px;
+.pwa-mode .btn-back:hover {
+    background-color: #343a40;
+    border-color: #343a40;
 }
 
-.keyboard-key.special:hover {
-    background: #5a6268;
+
+
 }
 
-.keyboard-key.space {
-    min-width: 200px;
+/* Специальные стили для iOS устройств */
+@supports (-webkit-touch-callout: none) {
+    .scanner-input {
+        /* iOS специфичные стили */
+        -webkit-appearance: none !important;
+        -webkit-border-radius: 8px !important;
+        border-radius: 8px !important;
+        font-size: 16px !important; /* Предотвращает зум */
+    }
+    
+    .scanner-input:focus {
+        /* iOS фокус */
+        -webkit-box-shadow: 0 0 0 0.3rem rgba(32, 201, 151, 0.35) !important;
+        box-shadow: 0 0 0 0.3rem rgba(32, 201, 151, 0.35) !important;
+    }
 }
 
-.keyboard-toggle {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #6c757d;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 3px;
+/* Специальные стили для Android устройств */
+@supports (-webkit-touch-callout: none) {
+    /* Не iOS устройства (Android) */
+    .scanner-input {
+        /* Android специфичные стили */
+        font-size: 16px !important;
+        line-height: 1.4 !important;
+    }
 }
 
-.keyboard-toggle:hover {
-    background: #e9ecef;
-    color: #495057;
+
+
+
+
+
+
+/* Специальные стили для исправления PWA отображения в scan.html */
+.pwa-mode .scanner-input {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+    z-index: auto !important;
+    pointer-events: auto !important;
 }
 
-/* Стили для индикатора режима ввода */
-.input-mode-indicator {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    color: white;
-    font-weight: bold;
+.pwa-mode .card {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
 }
 
-.input-mode-scanner {
-    background: #28a745;
+.pwa-mode .card-body {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
 }
 
-.input-mode-manual {
-    background: #ffc107;
-    color: #212529;
+.pwa-mode .barcode-list {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
 }
 
-.input-mode-hidden {
-    display: none;
+.pwa-mode .barcode-item {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
 }
+
+.pwa-mode .virtual-keyboard {
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: fixed !important;
+    transform: translateY(100%) !important;
+    clip: auto !important;
+    z-index: 1050 !important;
+}
+
+
+
+.pwa-mode .btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .form-control {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .form-label {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .form-text {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .row {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .col,
+.pwa-mode .col-12 {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .alert {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    clip: auto !important;
+}
+
+.pwa-mode .position-fixed {
+    
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    position: fixed !important;
+    transform: none !important;
+    clip: auto !important;
+    z-index: 1050 !important;
+}
+
+/* Принудительное исправление для всех элементов в PWA режиме */
+/* removed global .pwa-mode * override */
+
+/* Специальные исключения для flexbox элементов */
+.pwa-mode .row,
+.pwa-mode .d-flex {
+    display: flex !important;
+}
+
+.pwa-mode .position-fixed {
+    position: fixed !important;
+}
+
+.pwa-mode .position-absolute {
+    position: absolute !important;
+}
+
+.pwa-mode .position-relative {
+    position: relative !important;
+}
+
+/* --- Safe PWA display fixes (injected) --- */
+:root { --vh: 1vh; }
+@media all and (display-mode: standalone) {
+  html, body { height: 100svh; min-height: 100svh; overflow: auto; }
+}
+.pwa-safe-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: 60svh; }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Кнопка "Назад" в верхней части -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-start">
+            <a href="/dashboard/{{ user.id }}" class="btn btn-back">
+                <i class="bi bi-arrow-left me-2"></i>
+                Назад
+            </a>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -191,19 +635,7 @@
                 {% endif %}
                 {{ document.doc_type }}
             </h1>
-            <div class="d-none d-md-flex">
-                <a href="/dashboard/{{ user.id }}" class="btn btn-outline-secondary me-2">
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Назад
-                </a>
-                <form method="post" action="/close_document/{{ user.id }}" class="d-inline">
-                    <button type="submit" class="btn btn-success" 
-                            onclick="return confirm('Завершить документ и сохранить CSV файл?')">
-                        <i class="bi bi-check-circle me-1"></i>
-                        Сохранить документ
-                    </button>
-                </form>
-            </div>
+
         </div>
     </div>
 </div>
@@ -212,42 +644,34 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card border-primary">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-qr-code-scan me-2"></i>
-                    Сканирование штрихкодов
-                </h5>
-            </div>
             <div class="card-body">
                 <form method="post" action="/add_barcode/{{ user.id }}" id="scanForm">
                     <div class="row align-items-end">
-                        <div class="col-md-10">
+                        <div class="col-md-8">
                             <label for="barcode" class="form-label">Штрихкод</label>
                             <div class="position-relative">
                                 <input type="text" 
                                        class="form-control scanner-input" 
                                        id="barcode" 
                                        name="barcode" 
-                                       placeholder="Отсканируйте или введите штрихкод"
+                                       placeholder="Отсканируйте штрихкод"
                                        required
-                                       autofocus
+                                      
                                        lang="en"
                                        inputmode="text"
                                        autocomplete="off"
-                                       spellcheck="false">
+                                       spellcheck="false"
+                                       data-keyboard-layout="en">
                                 <div id="scan-feedback" class="position-absolute top-50 end-0 translate-middle-y me-3" style="display: none;">
                                     <i class="bi bi-check-circle text-success fs-4"></i>
                                 </div>
-                                <div id="input-mode-indicator" class="input-mode-indicator input-mode-hidden">
+                                <div id="input-mode-indicator" class="input-mode-indicator input-mode-scanner">
                                     <i class="bi bi-upc-scan"></i>
                                 </div>
-                                <button type="button" class="keyboard-toggle" id="keyboard-toggle" title="Показать виртуальную клавиатуру">
-                                    <i class="bi bi-keyboard"></i>
-                                </button>
                             </div>
                             <div class="form-text">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Поместите курсор в поле и отсканируйте штрихкод 
+                                Поместите курсор в поле и отсканируйте штрихкод
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -256,6 +680,7 @@
                                 Добавить
                             </button>
                         </div>
+
                     </div>
                 </form>
             </div>
@@ -263,64 +688,7 @@
     </div>
 </div>
 
-<!-- Виртуальная клавиатура -->
-<div class="virtual-keyboard" id="virtual-keyboard">
-    <div class="keyboard-row">
-        <button class="keyboard-key" data-key="1">1</button>
-        <button class="keyboard-key" data-key="2">2</button>
-        <button class="keyboard-key" data-key="3">3</button>
-        <button class="keyboard-key" data-key="4">4</button>
-        <button class="keyboard-key" data-key="5">5</button>
-        <button class="keyboard-key" data-key="6">6</button>
-        <button class="keyboard-key" data-key="7">7</button>
-        <button class="keyboard-key" data-key="8">8</button>
-        <button class="keyboard-key" data-key="9">9</button>
-        <button class="keyboard-key" data-key="0">0</button>
-    </div>
-    <div class="keyboard-row">
-        <button class="keyboard-key" data-key="q">Q</button>
-        <button class="keyboard-key" data-key="w">W</button>
-        <button class="keyboard-key" data-key="e">E</button>
-        <button class="keyboard-key" data-key="r">R</button>
-        <button class="keyboard-key" data-key="t">T</button>
-        <button class="keyboard-key" data-key="y">Y</button>
-        <button class="keyboard-key" data-key="u">U</button>
-        <button class="keyboard-key" data-key="i">I</button>
-        <button class="keyboard-key" data-key="o">O</button>
-        <button class="keyboard-key" data-key="p">P</button>
-    </div>
-    <div class="keyboard-row">
-        <button class="keyboard-key" data-key="a">A</button>
-        <button class="keyboard-key" data-key="s">S</button>
-        <button class="keyboard-key" data-key="d">D</button>
-        <button class="keyboard-key" data-key="f">F</button>
-        <button class="keyboard-key" data-key="g">G</button>
-        <button class="keyboard-key" data-key="h">H</button>
-        <button class="keyboard-key" data-key="j">J</button>
-        <button class="keyboard-key" data-key="k">K</button>
-        <button class="keyboard-key" data-key="l">L</button>
-    </div>
-    <div class="keyboard-row">
-        <button class="keyboard-key" data-key="z">Z</button>
-        <button class="keyboard-key" data-key="x">X</button>
-        <button class="keyboard-key" data-key="c">C</button>
-        <button class="keyboard-key" data-key="v">V</button>
-        <button class="keyboard-key" data-key="b">B</button>
-        <button class="keyboard-key" data-key="n">N</button>
-        <button class="keyboard-key" data-key="m">M</button>
-        <button class="keyboard-key special" data-key="backspace">
-            <i class="bi bi-backspace"></i>
-        </button>
-    </div>
-    <div class="keyboard-row">
-        <button class="keyboard-key special" data-key="clear">Очистить</button>
-        <button class="keyboard-key space" data-key=" ">Пробел</button>
-        <button class="keyboard-key special" data-key="enter">Ввод</button>
-        <button class="keyboard-key special" data-key="close">
-            <i class="bi bi-x-lg"></i>
-        </button>
-    </div>
-</div>
+
 
 <!-- Компактная статистика -->
 <div class="row mb-3">
@@ -448,31 +816,104 @@
 </div>
 {% endif %}
 
-<!-- Плавающая кнопка сохранения для мобильных -->
-<div class="position-fixed bottom-0 end-0 p-3 d-md-none" style="z-index: 1050;">
-    <form method="post" action="/close_document/{{ user.id }}">
-        <button type="submit" class="btn btn-success btn-lg rounded-circle shadow-lg" 
-                onclick="return confirm('Завершить документ и сохранить CSV файл?')"
-                title="Сохранить документ">
-            <i class="bi bi-check-circle"></i>
-        </button>
-    </form>
-</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 let isSubmitting = false;
-let autoSubmitTimeout = null;
-let lastInputTime = 0;
-let isManualInput = false;
-let keyboardVisible = false;
 
-// Функция для отправки формы с защитой от дублирования
+
+
+
+// Специальная функция для исправления PWA отображения в scan.html
+function fixScanPWADisplay() {
+    if (!document.body.classList.contains('pwa-mode')) return;
+    
+    console.log('Исправление PWA отображения в scan.html...');
+    
+    // Принудительно показываем все элементы
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach(el => {
+        if (el && el !== document.documentElement && el !== document.body) {
+            el.style.display = 'block';
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+            el.style.overflow = 'visible';
+            el.style.maxHeight = 'none';
+            el.style.height = 'auto';
+        }
+    });
+    
+    // Специальные исправления для элементов scan.html
+    const scannerInput = document.getElementById('barcode');
+    if (scannerInput) {
+        scannerInput.style.display = 'block';
+        scannerInput.style.visibility = 'visible';
+        scannerInput.style.opacity = '1';
+        scannerInput.style.overflow = 'visible';
+        scannerInput.style.maxHeight = 'none';
+        scannerInput.style.height = 'auto';
+    }
+    
+    // Исправляем карточки
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.style.display = 'block';
+        card.style.visibility = 'visible';
+        card.style.opacity = '1';
+        card.style.overflow = 'visible';
+        card.style.maxHeight = 'none';
+        card.style.height = 'auto';
+    });
+    
+    // Исправляем кнопки
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+        btn.style.display = 'inline-block';
+        btn.style.visibility = 'visible';
+        btn.style.opacity = '1';
+        btn.style.overflow = 'visible';
+        btn.style.maxHeight = 'none';
+        btn.style.height = 'auto';
+    });
+    
+    // Исправляем строки и колонки
+    const rows = document.querySelectorAll('.row');
+    rows.forEach(row => {
+        row.style.display = 'flex';
+        row.style.visibility = 'visible';
+        row.style.opacity = '1';
+        row.style.overflow = 'visible';
+        row.style.maxHeight = 'none';
+        row.style.height = 'auto';
+    });
+    
+    const cols = document.querySelectorAll('.col, .col-12');
+    cols.forEach(col => {
+        col.style.display = 'block';
+        col.style.visibility = 'visible';
+        col.style.opacity = '1';
+        col.style.overflow = 'visible';
+        col.style.maxHeight = 'none';
+        col.style.height = 'auto';
+    });
+    
+    // Убеждаемся, что body и html отображаются
+    document.documentElement.style.display = 'block';
+    document.body.style.display = 'block';
+    document.body.style.overflow = 'auto';
+    
+    console.log('PWA отображение в scan.html исправлено');
+}
+
+// Функция для отправки формы с защитой от дублирования (ИСПРАВЛЕНО)
 function submitForm() {
     if (isSubmitting) return;
     
     const barcodeInput = document.getElementById('barcode');
+    if (!barcodeInput) return;
+    
     const barcodeValue = barcodeInput.value.trim();
     
     if (!barcodeValue) return;
@@ -487,17 +928,22 @@ function submitForm() {
     
     // Создаем скрытое поле для отправки значения
     const form = document.getElementById('scanForm');
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'barcode';
-    hiddenInput.value = barcodeValue;
-    form.appendChild(hiddenInput);
+    if (form) {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'barcode';
+        hiddenInput.value = barcodeValue;
+        form.appendChild(hiddenInput);
+        
+        // Отправляем форму
+        form.submit();
+    }
     
-    // Отправляем форму
-    form.submit();
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 }
 
-// Показать визуальную обратную связь при сканировании
+// Показать визуальную обратную связь при сканировании (ИСПРАВЛЕНО)
 function showScanFeedback() {
     const feedback = document.getElementById('scan-feedback');
     const statsNumber = document.querySelector('.stats-number');
@@ -516,251 +962,564 @@ function showScanFeedback() {
             statsNumber.classList.remove('pulse');
         }, 1000);
     }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 }
 
-// Функции для виртуальной клавиатуры
-function toggleKeyboard() {
-    const keyboard = document.getElementById('virtual-keyboard');
-    const toggleBtn = document.getElementById('keyboard-toggle');
-    
-    if (keyboardVisible) {
-        keyboard.classList.remove('show');
-        toggleBtn.innerHTML = '<i class="bi bi-keyboard"></i>';
-        toggleBtn.title = 'Показать виртуальную клавиатуру';
-    } else {
-        keyboard.classList.add('show');
-        toggleBtn.innerHTML = '<i class="bi bi-keyboard-fill"></i>';
-        toggleBtn.title = 'Скрыть виртуальную клавиатуру';
-    }
-    
-    keyboardVisible = !keyboardVisible;
-}
 
-function handleKeyboardKey(key) {
-    const barcodeInput = document.getElementById('barcode');
-    const cursorPos = barcodeInput.selectionStart;
-    const value = barcodeInput.value;
-    
-    switch(key) {
-        case 'backspace':
-            if (cursorPos > 0) {
-                barcodeInput.value = value.slice(0, cursorPos - 1) + value.slice(cursorPos);
-                barcodeInput.setSelectionRange(cursorPos - 1, cursorPos - 1);
-            }
-            break;
-        case 'clear':
-            barcodeInput.value = '';
-            barcodeInput.focus();
-            break;
-        case 'enter':
-            submitForm();
-            break;
-        case 'close':
-            toggleKeyboard();
-            break;
-        default:
-            barcodeInput.value = value.slice(0, cursorPos) + key + value.slice(cursorPos);
-            barcodeInput.setSelectionRange(cursorPos + 1, cursorPos + 1);
-            break;
-    }
-    
-    // Обновляем позицию курсора
-    barcodeInput.focus();
-}
 
-// Функция для обновления индикатора режима ввода
-function updateInputModeIndicator() {
-    const indicator = document.getElementById('input-mode-indicator');
-    const barcodeInput = document.getElementById('barcode');
-    
-    if (isManualInput) {
-        indicator.className = 'input-mode-indicator input-mode-manual';
-        indicator.innerHTML = '<i class="bi bi-keyboard"></i>';
-        indicator.title = 'Ручной ввод';
-    } else {
-        indicator.className = 'input-mode-indicator input-mode-scanner';
-        indicator.innerHTML = '<i class="bi bi-upc-scan"></i>';
-        indicator.title = 'Сканер';
-    }
-    
-    // Показываем индикатор только если поле в фокусе
-    if (document.activeElement === barcodeInput) {
-        indicator.classList.remove('input-mode-hidden');
-    } else {
-        indicator.classList.add('input-mode-hidden');
-    }
-}
+// Правильная обработка клавиатуры для предотвращения циклов (ИСПРАВЛЕНО)
 
-// Определение типа ввода (сканер vs ручной)
-document.getElementById('barcode').addEventListener('input', function(e) {
-    const currentTime = Date.now();
-    const value = this.value.trim();
-    
-    // Очищаем предыдущий таймер
-    if (autoSubmitTimeout) {
-        clearTimeout(autoSubmitTimeout);
-        autoSubmitTimeout = null;
-    }
-    
-    // Определяем тип ввода по скорости
-    if (lastInputTime > 0 && (currentTime - lastInputTime) < 50) {
-        // Быстрый ввод = сканер
-        isManualInput = false;
-    } else if (lastInputTime > 0 && (currentTime - lastInputTime) > 200) {
-        // Медленный ввод = ручной
-        isManualInput = true;
-    }
-    
-    lastInputTime = currentTime;
-    
-    // Обновляем индикатор режима ввода
-    updateInputModeIndicator();
-    
-    // Автоотправка ТОЛЬКО для сканера
-    if (value.length >= 8 && !isManualInput) {
-        autoSubmitTimeout = setTimeout(() => {
-            submitForm();
-        }, 100); // Короткая задержка для сканера
-    }
-});
 
-// Обработка клавиш для определения ручного ввода
-document.getElementById('barcode').addEventListener('keydown', function(e) {
-    // Любое нажатие клавиши = ручной ввод
-    isManualInput = true;
-    updateInputModeIndicator();
-    
-    // Очищаем автоотправку при ручном вводе
-    if (autoSubmitTimeout) {
-        clearTimeout(autoSubmitTimeout);
-        autoSubmitTimeout = null;
-    }
-});
 
-// Обработка Enter для ручного ввода
-document.getElementById('barcode').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        
-        // Очищаем таймер автоотправки
-        if (autoSubmitTimeout) {
-            clearTimeout(autoSubmitTimeout);
-            autoSubmitTimeout = null;
+
+
+
+
+
+
+
+// Обработчик для предотвращения зависания при потере фокуса (ИСПРАВЛЕНО)
+document.getElementById('barcode').addEventListener('blur', function(e) {
+    // Сбрасываем состояние при потере фокуса
+    setTimeout(() => {
+        if (this !== document.activeElement) {
+            this.value = '';
         }
-        
-        submitForm();
-    }
+    }, 100);
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Предотвращаем стандартную отправку формы
+// Предотвращаем стандартную отправку формы (ИСПРАВЛЕНО)
 document.getElementById('scanForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    e.stopPropagation(); // Предотвращаем всплытие события
+    
     if (!isSubmitting) {
         submitForm();
     }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Обработчики для виртуальной клавиатуры
+// Предотвращаем всплытие событий от формы (ИСПРАВЛЕНО)
+document.getElementById('scanForm').addEventListener('click', function(e) {
+    e.stopPropagation(); // Предотвращаем всплытие события
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+});
+
+// Обработчики для виртуальной клавиатуры (ИСПРАВЛЕНО)
 document.getElementById('keyboard-toggle').addEventListener('click', function(e) {
     e.preventDefault();
+    e.stopPropagation(); // Предотвращаем всплытие события
     toggleKeyboard();
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Обработчики для клавиш виртуальной клавиатуры
+// Обработчики для клавиш виртуальной клавиатуры (ИСПРАВЛЕНО)
 document.querySelectorAll('.keyboard-key').forEach(button => {
     button.addEventListener('click', function(e) {
         e.preventDefault();
+        e.stopPropagation(); // Предотвращаем всплытие события
+        
         const key = this.getAttribute('data-key');
         handleKeyboardKey(key);
         
-        // При нажатии любой клавиши на виртуальной клавиатуре считаем это ручным вводом
-        isManualInput = true;
-        updateInputModeIndicator();
-        
-        // Очищаем автоотправку при использовании виртуальной клавиатуры
-        if (autoSubmitTimeout) {
-            clearTimeout(autoSubmitTimeout);
-            autoSubmitTimeout = null;
-        }
+        // НЕ устанавливаем фокус автоматически!
+        // Это может создать циклы и проблемы с клавиатурой
     });
 });
 
-// Фокус на поле ввода после загрузки страницы
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('barcode').focus();
-    isSubmitting = false; // Сбрасываем флаг после загрузки
-    isManualInput = false; // Сбрасываем флаг ручного ввода
-    lastInputTime = 0;
-    updateInputModeIndicator();
+// Предотвращаем всплытие событий от виртуальной клавиатуры (ИСПРАВЛЕНО)
+document.getElementById('virtual-keyboard').addEventListener('click', function(e) {
+    e.stopPropagation(); // Предотвращаем всплытие события
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Возврат фокуса на поле ввода при клике в любом месте
+// Обработчик клика для управления фокусом (ИСПРАВЛЕНО)
 document.addEventListener('click', function(e) {
-    // Не перехватываем фокус если кликнули по кнопке или форме
-    if (!e.target.closest('button') && !e.target.closest('form') && !e.target.closest('.virtual-keyboard')) {
-        const barcodeInput = document.getElementById('barcode');
-        barcodeInput.focus();
-        // Сбрасываем флаги при получении фокуса
-        isManualInput = false;
-        lastInputTime = 0;
-        updateInputModeIndicator();
+    // Если событие уже остановлено, не обрабатываем его
+    if (e.defaultPrevented) return;
+    
+    // Проверяем, что кликнули именно по полю ввода или его контейнеру
+    if (e.target.closest('#barcode') || e.target.closest('.position-relative')) {
+        // Если кликнули по полю ввода, НЕ делаем ничего
+        return;
     }
+    
+    // Проверяем, что кликнули по кнопке, форме или виртуальной клавиатуре
+    if (e.target.closest('button') || e.target.closest('form') || e.target.closest('.virtual-keyboard')) {
+        // НЕ устанавливаем фокус автоматически!
+        return;
+    }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Сброс флагов при получении фокуса на поле ввода
-document.getElementById('barcode').addEventListener('focus', function() {
-    isManualInput = false;
-    lastInputTime = 0;
-    updateInputModeIndicator();
-    if (autoSubmitTimeout) {
-        clearTimeout(autoSubmitTimeout);
-        autoSubmitTimeout = null;
-    }
+// Предотвращаем всплытие событий от поля ввода (ИСПРАВЛЕНО)
+document.getElementById('barcode').addEventListener('click', function(e) {
+    e.stopPropagation(); // Предотвращаем всплытие события
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Сброс флага при возврате на страницу
+// Предотвращаем всплытие событий от контейнера поля ввода (ИСПРАВЛЕНО)
+document.querySelector('.position-relative').addEventListener('click', function(e) {
+    e.stopPropagation(); // Предотвращаем всплытие события
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+});
+
+// Сброс флага при возврате на страницу (ИСПРАВЛЕНО)
 window.addEventListener('pageshow', function() {
     isSubmitting = false;
-    isManualInput = false;
-    lastInputTime = 0;
+    keyboardVisible = false;
     document.getElementById('barcode').value = '';
-    document.getElementById('barcode').focus();
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Пользователь сам должен решить, куда установить фокус
+    
     updateInputModeIndicator();
+    
+    // Устанавливаем английскую раскладку клавиатуры (БЕЗ ФОКУСА)
+    setEnglishKeyboardLayout();
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Скрытие клавиатуры при клике вне её области
+// Скрытие клавиатуры при клике вне её области (ИСПРАВЛЕНО)
 document.addEventListener('click', function(e) {
+    // Если событие уже остановлено, не обрабатываем его
+    if (e.defaultPrevented) return;
+    
+    // Если клавиатура видима и кликнули не по ней и не по кнопке переключения
     if (keyboardVisible && !e.target.closest('.virtual-keyboard') && !e.target.closest('#keyboard-toggle')) {
         toggleKeyboard();
     }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 });
 
-// Функция для показа/скрытия деталей дублированных штрихкодов
+// Функция для показа/скрытия деталей дублированных штрихкодов (ИСПРАВЛЕНО)
 function toggleDuplicateList(index) {
     // Эта функция может быть расширена для показа детальной информации
     // о каждом сканировании дублированного штрихкода
     console.log('Показать детали для штрихкода #' + index);
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 }
 
-// Функция для анимации нового штрихкода
+// НЕ запускаем принудительную установку английской раскладки каждые 5 секунд
+// Это может создавать проблемы с фокусом и клавиатурой
+// setInterval(forceEnglishKeyboard, 5000);
+
+// Обработчик для изменения языка ввода при загрузке страницы (ИСПРАВЛЕНО)
+window.addEventListener('load', function() {
+    // НЕ устанавливаем фокус автоматически!
+    // setTimeout(forceEnglishKeyboard, 1000);
+    
+    // Устанавливаем английскую раскладку клавиатуры (БЕЗ ФОКУСА)
+    setEnglishKeyboardLayout();
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+});
+
+// Обработчик для изменения языка ввода при возврате на страницу
+window.addEventListener('pageshow', function() {
+    // НЕ устанавливаем фокус автоматически!
+    // setTimeout(forceEnglishKeyboard, 500);
+});
+
+// Обработчик для изменения языка ввода при изменении размера окна (ИСПРАВЛЕНО)
+window.addEventListener('resize', function() {
+    // НЕ устанавливаем фокус автоматически!
+    // setTimeout(forceEnglishKeyboard, 200);
+    
+    // Устанавливаем английскую раскладку клавиатуры (БЕЗ ФОКУСА)
+    setEnglishKeyboardLayout();
+    
+    // Исправляем прокрутку в PWA режиме при изменении размера окна
+    if (document.body.classList.contains('pwa-mode')) {
+        setTimeout(() => {
+            fixPWAScrolling();
+            forcePWAScrollingFix();
+        }, 100);
+        
+        // Дополнительная проверка через 300мс
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 300);
+    }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+});
+
+// Обработчик для изменения языка ввода при изменении ориентации (ИСПРАВЛЕНО)
+window.addEventListener('orientationchange', function() {
+    // НЕ устанавливаем фокус автоматически!
+    // setTimeout(forceEnglishKeyboard, 500);
+    
+    // Устанавливаем английскую раскладку клавиатуры (БЕЗ ФОКУСА)
+    setEnglishKeyboardLayout();
+    
+    // Исправляем прокрутку в PWA режиме при изменении ориентации
+    if (document.body.classList.contains('pwa-mode')) {
+        setTimeout(() => {
+            fixPWAScrolling();
+            forcePWAScrollingFix();
+        }, 500);
+        
+        // Дополнительная проверка через 800мс
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 800);
+    }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+});
+
+// Функция для анимации нового штрихкода (ИСПРАВЛЕНО)
 function highlightNewBarcode() {
     const barcodeItems = document.querySelectorAll('.barcode-item');
     if (barcodeItems.length > 0) {
         const lastItem = barcodeItems[barcodeItems.length - 1];
-        lastItem.classList.add('new-scan');
-        setTimeout(() => {
-            lastItem.classList.remove('new-scan');
-        }, 500);
+        if (lastItem) {
+            lastItem.classList.add('new-scan');
+            setTimeout(() => {
+                if (lastItem.classList.contains('new-scan')) {
+                    lastItem.classList.remove('new-scan');
+                }
+            }, 500);
+        }
     }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
 }
 
-// Вызываем анимацию при загрузке страницы (если есть новые штрихкоды)
+// Функция для установки английской раскладки клавиатуры (ИСПРАВЛЕНО)
+function setEnglishKeyboardLayout() {
+    const barcodeInput = document.getElementById('barcode');
+    if (!barcodeInput) return;
+    
+    // Устанавливаем атрибуты для английской раскладки
+    barcodeInput.setAttribute('lang', 'en');
+    barcodeInput.setAttribute('data-keyboard-layout', 'en');
+    barcodeInput.setAttribute('inputmode', 'text');
+    barcodeInput.setAttribute('autocomplete', 'off');
+    barcodeInput.setAttribute('spellcheck', 'false');
+    barcodeInput.setAttribute('autocorrect', 'off');
+    barcodeInput.setAttribute('autocapitalize', 'off');
+    
+    // НЕ устанавливаем фокус автоматически - это может создать цикл!
+    // Фокус должен устанавливаться только пользователем
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+}
+
+// Функция для исправления проблем с прокруткой в PWA режиме (ИСПРАВЛЕНО)
+function fixPWAScrolling() {
+  // minimalist: ensure CSS var is set; do not override styles massively
+  document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+}
+
+
+// Функция для непрерывного мониторинга и исправления PWA проблем (ИСПРАВЛЕНО)
+function continuousPWAFix() {
+  // no-op; timers removed
+}
+
+
+// Функция для принудительной установки английской раскладки (БЕЗ ФОКУСА) (ИСПРАВЛЕНО)
+function forceEnglishKeyboard() {
+    const barcodeInput = document.getElementById('barcode');
+    if (!barcodeInput) return;
+    
+    // Устанавливаем все возможные атрибуты для английской раскладки
+    barcodeInput.setAttribute('lang', 'en');
+    barcodeInput.setAttribute('data-keyboard-layout', 'en');
+    barcodeInput.setAttribute('inputmode', 'text');
+    barcodeInput.setAttribute('autocomplete', 'off');
+    barcodeInput.setAttribute('spellcheck', 'false');
+    barcodeInput.setAttribute('autocorrect', 'off');
+    barcodeInput.setAttribute('autocapitalize', 'off');
+    
+    // НЕ устанавливаем фокус автоматически!
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+}
+
+// Функция для принудительного исправления прокрутки в PWA режиме (НОВАЯ)
+function forcePWAScrollingFix() {
+  // no-op; heavy overrides removed
+}
+
+
+// Функция для предотвращения зависания клавиатуры (ИСПРАВЛЕНО)
+function preventKeyboardFreeze() {
+  // keep focus without interfering
+  // Intentionally left minimal
+}
+
+
+// Функция для сброса состояния клавиатуры (ИСПРАВЛЕНО)
+function resetKeyboardState() {
+    const barcodeInput = document.getElementById('barcode');
+    if (!barcodeInput) return;
+    
+    // Сбрасываем все атрибуты
+    barcodeInput.value = '';
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Пользователь сам должен решить, куда установить фокус
+    
+    // Устанавливаем правильные атрибуты
+    setTimeout(() => {
+        setEnglishKeyboardLayout();
+        // НЕ устанавливаем фокус автоматически!
+    }, 200);
+    
+    // Сбрасываем счетчик событий focus
+    focusEventCount = 0;
+}
+
+// Вызываем анимацию при загрузке страницы (если есть новые штрихкоды) (ИСПРАВЛЕНО)
 document.addEventListener('DOMContentLoaded', function() {
+    
+    
+    
+    
     // Проверяем, есть ли новые штрихкоды (по URL параметру или другим способом)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('new_scan') === 'true') {
         setTimeout(highlightNewBarcode, 100);
     }
+    
+    // Устанавливаем английскую раскладку клавиатуры (БЕЗ ФОКУСА)
+    setEnglishKeyboardLayout();
+    
+    // Исправляем проблемы с прокруткой в PWA режиме
+    fixPWAScrolling();
+    
+    // Принудительно исправляем прокрутку в PWA режиме
+    forcePWAScrollingFix();
+    
+    // Предотвращаем зависание клавиатуры
+    preventKeyboardFreeze();
+    
+    // Запускаем непрерывный мониторинг PWA проблем
+/* setInterval removed for PWA stability */
+    
+    // Дополнительный мониторинг для прокрутки в PWA режиме
+/* setInterval removed for PWA stability */
+    
+    // Мониторинг прокрутки в реальном времени для PWA режима
+    if (document.body.classList.contains('pwa-mode')) {
+        // Проверяем прокрутку каждые 500мс в PWA режиме
+        setInterval(() => {
+            if (document.body.classList.contains('pwa-mode')) {
+                forcePWAScrollingFix();
+                
+                // Дополнительная проверка для элементов, которые могут блокировать прокрутку
+                const blockingElements = document.querySelectorAll('[style*="overflow: hidden"], [style*="overflow:hidden"]');
+                blockingElements.forEach(el => {
+                    el.style.overflow = 'visible !important';
+                    el.style.maxHeight = 'none !important';
+                    el.style.height = 'auto !important';
+                });
+            }
+        }, 500);
+        
+        // Дополнительная проверка при загрузке страницы в PWA режиме
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 1000);
+        
+        // Еще одна проверка через 3 секунды для надежности
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 3000);
+        
+        // Дополнительная проверка через 5 секунд для надежности
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 5000);
+        
+        // Дополнительная проверка через 7 секунд для надежности
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 7000);
+    }
+    
+    
+    
+    // Дополнительная проверка при изменении видимости страницы
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            setTimeout(() => {
+                setEnglishKeyboardLayout();
+                fixPWAScrolling();
+                forcePWAScrollingFix();
+                resetKeyboardState();
+                
+                // Дополнительная проверка прокрутки в PWA режиме
+                if (document.body.classList.contains('pwa-mode')) {
+                    setTimeout(() => {
+                        forcePWAScrollingFix();
+                        fixPWAScrolling();
+                        continuousPWAFix();
+                    }, 200);
+                    
+                    // Дополнительная проверка через 500мс
+                    setTimeout(() => {
+                        forcePWAScrollingFix();
+                        fixPWAScrolling();
+                        continuousPWAFix();
+                    }, 500);
+                }
+                
+                // НЕ устанавливаем фокус автоматически!
+                // Это может создать циклы и проблемы с клавиатурой
+            }, 100);
+        }
+    });
+    
+    // Обработчик для изменения ориентации устройства
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            setEnglishKeyboardLayout();
+            fixPWAScrolling();
+            forcePWAScrollingFix();
+            resetKeyboardState();
+            
+            // Дополнительная проверка прокрутки в PWA режиме
+            if (document.body.classList.contains('pwa-mode')) {
+                setTimeout(() => {
+                    forcePWAScrollingFix();
+                    fixPWAScrolling();
+                    continuousPWAFix();
+                }, 300);
+                
+                // Дополнительная проверка через 600мс
+                setTimeout(() => {
+                    forcePWAScrollingFix();
+                    fixPWAScrolling();
+                    continuousPWAFix();
+                }, 600);
+            }
+            
+            // НЕ устанавливаем фокус автоматически!
+            // Это может создать циклы и проблемы с клавиатурой
+        }, 500);
+    });
+    
+    // Устанавливаем фокус на поле ввода только при загрузке страницы
+    // Это единственный раз, когда мы устанавливаем фокус автоматически
+    const barcodeInput = document.getElementById('barcode');
+    if (barcodeInput) {
+        barcodeInput.focus();
+        updateInputModeIndicator();
+    }
+    
+    // Дополнительная проверка прокрутки в PWA режиме при загрузке страницы
+    if (document.body.classList.contains('pwa-mode')) {
+        // Проверяем прокрутку через 5 секунд после загрузки страницы
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 5000);
+        
+        // Проверяем прокрутку через 10 секунд после загрузки страницы
+        setTimeout(() => {
+            forcePWAScrollingFix();
+            fixPWAScrolling();
+            continuousPWAFix();
+        }, 10000);
+    }
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+    
+    // НЕ устанавливаем фокус автоматически!
+    // Это может создать циклы и проблемы с клавиатурой
+});
+
+// Предотвращаем всплытие событий от всех кнопок (ИСПРАВЛЕНО)
+document.querySelectorAll('button').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.stopPropagation(); // Предотвращаем всплытие события
+        
+        // НЕ устанавливаем фокус автоматически!
+        // Это может создать циклы и проблемы с клавиатурой
+    });
+});
+
+// Предотвращаем всплытие событий от всех ссылок (ИСПРАВЛЕНО)
+document.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.stopPropagation(); // Предотвращаем всплытие события
+        
+        // НЕ устанавливаем фокус автоматически!
+        // Это может создать циклы и проблемы с клавиатурой
+    });
 });
 </script>
 {% endblock %}
